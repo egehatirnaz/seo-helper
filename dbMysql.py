@@ -109,6 +109,24 @@ class DbMysql:
             result = cursor.fetchone()['last_insert_id()']
             return result
 
+    def update_data(self, table_name, update_data, row_id):
+        with self._connection.cursor() as cursor:
+            # UPDATE table SET last_update=now(), last_monitor=last_update WHERE id=1;
+            update_string, sql = "", ""
+            update_list = []
+            print(update_data)
+            for (key, value) in update_data:
+                update_list.append(key + '="' + value + '"')
+            update_string = ','.join(update_list)
+
+            if update_string != "":
+                sql = 'UPDATE ' + table_name + ' SET ' + update_string + ' WHERE id=' + str(row_id) + ';'
+            print(sql)
+            cursor.execute(sql)
+            self._connection.commit()
+            result = cursor.fetchall()
+            return result
+
     def execute_custom_query(self, sql):
         with self._connection.cursor() as cursor:
             cursor.execute(sql)

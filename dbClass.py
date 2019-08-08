@@ -16,3 +16,6 @@ class DbWrapper:
 
     def execute(self, sql):
         return self.__db.execute_custom_query(sql)
+
+    def update_data(self, table_name, update_data, row_id):
+        return self.__db.update_data(table_name, update_data, row_id)
