@@ -9,3 +9,4 @@
 
 env.py
 templates/
+venv/
