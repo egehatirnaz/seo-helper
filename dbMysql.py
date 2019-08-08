@@ -102,3 +102,15 @@ class DbMysql:
             cursor.execute(sql)
             result = cursor.fetchone()['count(*)']
             return result
+
+    def get_last_insert_id(self):
+        with self._connection.cursor() as cursor:
+            cursor.execute('SELECT last_insert_id()')
+            result = cursor.fetchone()['last_insert_id()']
+            return result
+
+    def execute_custom_query(self, sql):
+        with self._connection.cursor() as cursor:
+            cursor.execute(sql)
+            result = cursor.fetchall()
+            return result

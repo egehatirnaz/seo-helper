@@ -10,3 +10,9 @@ class DbWrapper:
 
     def get_count(self, table_name):
         return self.__db.get_count(table_name)
+
+    def get_last_insert_id(self):
+        return self.__db.get_last_insert_id()
+
+    def execute(self, sql):
+        return self.__db.execute_custom_query(sql)
