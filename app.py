@@ -1,6 +1,5 @@
 from flask import Flask, request, Response, jsonify, make_response
 import bcrypt
-import json
 import traceback
 import time
 import dbMysql
@@ -74,8 +73,7 @@ def action_user():
                     return make_response(jsonify({
                         "message": "User is generated successfully!",
                         "User ID": userid,
-                        "API Key:": api_key})
-                        , 200)
+                        "API Key:": api_key}), 200)
                 else:
                     return Response("Invalid parameters.", status=400)
 
@@ -120,7 +118,6 @@ def action_seo_errors():
     if 'Auth-Key' in request.headers:
         auth_key = request.headers['Auth-Key']
         if valid_auth(auth_key):  # Valid Auth Key, proceed as usual.
-            message = ""
 
             # POST
             if request.method == 'POST':
@@ -146,7 +143,6 @@ def action_seo_errors():
 
             # PUT
             elif request.method == 'PUT':
-                message = ""
                 json_data = request.get_json()
                 if 'id' in json_data and 'data' in json_data:
                     row_id = json_data['id']
@@ -155,8 +151,8 @@ def action_seo_errors():
                     try:
                         db_obj.update_data('seo_errors', update_items, row_id)
                         message = "Error with id #" + str(row_id) + " is updated successfully!"
-                    except Exception:
-                        print(traceback.format_exc())
+                    except Exception as e:
+                        print(traceback.format_exc() + "\n" + e)
                         return Response("Action could not be performed. Query did not execute successfully.",
                                         status=500)
                     return make_response(message, 200)
@@ -311,10 +307,11 @@ def action_analysis_errors():
             # GET
             elif request.method == 'GET':
                 try:
-                    all_records = db_obj.execute("""SELECT analysis_errors.id, analysed_url.url, analysed_url.time_accessed, 
+                    all_records = db_obj.execute(
+                        """SELECT analysis_errors.id, analysed_url.url, analysed_url.time_accessed, 
                             seo_errors.name, seo_errors.error_condition, seo_errors.description FROM analysis_errors 
-                            RIGHT JOIN analysed_url ON analysis_errors.url_id=analysed_url.id 
-                            RIGHT JOIN seo_errors ON analysis_errors.error_id=seo_errors.id;""")
+                            JOIN analysed_url ON analysis_errors.url_id=analysed_url.id 
+                            JOIN seo_errors ON analysis_errors.error_id=seo_errors.id;""")
                 except Exception as e:
                     print(e)
                     return Response("Action could not be performed. Query did not execute successfully.", status=500)
