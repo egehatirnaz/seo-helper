@@ -1,3 +1,5 @@
+#### This project is a work in progress!
+
 # SEO Helper
 This project helps the process of analyzing a website for common SEO mistakes and errors. A URL given as a parameter will be crawled and analyzed for certain missing HTML meta tags. Analysis requests will be made through an API with a user's API key. The user will also be notified about existing SEO related errors.
 
