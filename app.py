@@ -48,7 +48,8 @@ def action_user():
                                            COLUMNS=['name_surname', 'password', 'email', 'created_at'])
                     except Exception as e:
                         print(e)
-                        return Response("Action could not be performed. Query did not execute successfully.", status=500)
+                        return Response("Action could not be performed. Query did not execute successfully.",
+                                        status=500)
 
                     # Generating an API key assigned to the user id.
                     api_key = ''.join(secrets.token_hex(20))
@@ -66,7 +67,8 @@ def action_user():
                             print(e)
                             return Response("Action could not be performed. Query did not execute successfully.",
                                             status=500)
-                        return Response("Action could not be performed. Query did not execute successfully.", status=500)
+                        return Response("Action could not be performed. Query did not execute successfully.",
+                                        status=500)
 
                     # Success!
                     return make_response(jsonify({
@@ -100,7 +102,8 @@ def action_get_seo_error(error_id):
                         error_detail = db_obj.execute("SELECT * FROM seo_errors WHERE id = '" + str(error_id) + "';")
                     except Exception as e:
                         print(e)
-                        return Response("Action could not be performed. Query did not execute successfully.", status=500)
+                        return Response("Action could not be performed. Query did not execute successfully.",
+                                        status=500)
                     if len(error_detail) > 0:
                         return make_response(jsonify(error_detail), 200)
                     else:
@@ -135,7 +138,8 @@ def action_seo_errors():
                         message = "A new error has been added successfully!"
                     except Exception as e:
                         print(e)
-                        return Response("Action could not be performed. Query did not execute successfully.", status=500)
+                        return Response("Action could not be performed. Query did not execute successfully.",
+                                        status=500)
                     return make_response(message, 200)
                 else:
                     return Response("Invalid parameters.", status=400)
@@ -153,7 +157,8 @@ def action_seo_errors():
                         message = "Error with id #" + str(row_id) + " is updated successfully!"
                     except Exception:
                         print(traceback.format_exc())
-                        return Response("Action could not be performed. Query did not execute successfully.", status=500)
+                        return Response("Action could not be performed. Query did not execute successfully.",
+                                        status=500)
                     return make_response(message, 200)
                 return Response("Invalid parameters.", status=400)
 
@@ -187,7 +192,8 @@ def action_get_analysed_url(url_id):
                         url_detail = db_obj.execute("SELECT * FROM analysed_url WHERE id = '" + str(url_id) + "';")
                     except Exception as e:
                         print(e)
-                        return Response("Action could not be performed. Query did not execute successfully.", status=500)
+                        return Response("Action could not be performed. Query did not execute successfully.",
+                                        status=500)
                     if len(url_detail) > 0:
                         return make_response(jsonify(url_detail), 200)
                     else:
@@ -221,7 +227,8 @@ def action_analysed_url():
                         message = "A new URL has been added successfully!"
                     except Exception as e:
                         print(e)
-                        return Response("Action could not be performed. Query did not execute successfully.", status=500)
+                        return Response("Action could not be performed. Query did not execute successfully.",
+                                        status=500)
                     return make_response(message, 200)
                 else:
                     return Response("Invalid parameters.", status=400)
@@ -236,6 +243,84 @@ def action_analysed_url():
 
                 if len(analysis_detail) > 0:
                     return make_response(jsonify(analysis_detail), 200)
+                else:
+                    return Response("No record found for this error ID.", status=404)
+
+            # 405
+            else:
+                return Response(status=405)
+    return Response(status=401)
+
+
+@app.route('/api/analysis-errors/<int:url_id>', methods=['GET'])
+def action_get_analysis_errors(url_id):
+    if 'Auth-Key' in request.headers:
+        auth_key = request.headers['Auth-Key']
+        if valid_auth(auth_key):  # Valid Auth Key, proceed as usual.
+            if request.method == 'GET':
+                if url_id and url_id > 0:
+                    try:
+                        url_detail = db_obj.execute(
+                            """SELECT analysis_errors.id, analysed_url.url, analysed_url.time_accessed, 
+                            seo_errors.name, seo_errors.error_condition, seo_errors.description FROM analysis_errors 
+                            RIGHT JOIN analysed_url ON analysis_errors.url_id=analysed_url.id 
+                            RIGHT JOIN seo_errors ON analysis_errors.error_id=seo_errors.id 
+                            WHERE url_id = '""" + str(url_id) + "';")
+                    except Exception as e:
+                        print(e)
+                        return Response("Action could not be performed. Query did not execute successfully.",
+                                        status=500)
+                    if len(url_detail) > 0:
+                        return make_response(jsonify(url_detail), 200)
+                    else:
+                        return Response("No record found for this error ID.", status=404)
+                else:
+                    return Response("No record found for this error ID.", status=404)
+            else:
+                return Response(status=405)
+    return Response(status=401)
+
+
+@app.route('/api/analysis-errors', methods=['POST', 'GET'])
+def action_analysis_errors():
+    if 'Auth-Key' in request.headers:
+        auth_key = request.headers['Auth-Key']
+        if valid_auth(auth_key):  # Valid Auth Key, proceed as usual.
+
+            # POST
+            if request.method == 'POST':
+                # Creating a new record of analysed URL with given name, accessed-time and error_percentage.
+                json_data = request.get_json()
+                if 'url_id' in json_data and 'error_id' in json_data:
+                    url_id = json_data['url_id']
+                    error_id = json_data['error_id']
+
+                    try:
+                        db_obj.insert_data('analysis_errors',
+                                           [(url_id, error_id)],
+                                           COLUMNS=['url_id', 'error_id'])
+                        message = "A new URL & error match has been added successfully!"
+                    except Exception as e:
+                        print(e)
+                        return Response("Action could not be performed. Query did not execute successfully.",
+                                        status=500)
+                    return make_response(message, 200)
+                else:
+                    return Response("Invalid parameters.", status=400)
+
+            # GET
+            elif request.method == 'GET':
+                try:
+                    all_records = db_obj.execute("""SELECT analysis_errors.id, analysed_url.url, analysed_url.time_accessed, 
+                            seo_errors.name, seo_errors.error_condition, seo_errors.description FROM analysis_errors 
+                            RIGHT JOIN analysed_url ON analysis_errors.url_id=analysed_url.id 
+                            RIGHT JOIN seo_errors ON analysis_errors.error_id=seo_errors.id;""")
+                except Exception as e:
+                    print(e)
+                    return Response("Action could not be performed. Query did not execute successfully.", status=500)
+
+                if len(all_records) > 0:
+                    return make_response(jsonify(all_records), 200)
                 else:
                     return Response("No record found for this error ID.", status=404)
 
