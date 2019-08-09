@@ -209,19 +209,22 @@ def action_analysed_url():
             if request.method == 'POST':
                 # Creating a new record of analysed URL with given name, accessed-time and error_percentage.
                 json_data = request.get_json()
-                url = json_data['url']
-                time_accessed = json_data['time_accessed']
-                error_percentage = json_data['error_percentage']
+                if 'url' in json_data and 'time_accessed' in json_data and 'error_percentage' in json_data:
+                    url = json_data['url']
+                    time_accessed = json_data['time_accessed']
+                    error_percentage = json_data['error_percentage']
 
-                try:
-                    db_obj.insert_data('analysed_url',
-                                       [(url, time_accessed, error_percentage)],
-                                       COLUMNS=['url', 'time_accessed', 'error_percentage'])
-                    message = "A new URL has been added successfully!"
-                except Exception as e:
-                    print(e)
-                    return Response("Action could not be performed. Query did not execute successfully.", status=500)
-                return make_response(message, 200)
+                    try:
+                        db_obj.insert_data('analysed_url',
+                                           [(url, time_accessed, error_percentage)],
+                                           COLUMNS=['url', 'time_accessed', 'error_percentage'])
+                        message = "A new URL has been added successfully!"
+                    except Exception as e:
+                        print(e)
+                        return Response("Action could not be performed. Query did not execute successfully.", status=500)
+                    return make_response(message, 200)
+                else:
+                    return Response("Invalid parameters.", status=400)
 
             # GET
             elif request.method == 'GET':
