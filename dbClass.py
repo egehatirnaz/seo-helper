@@ -20,5 +20,5 @@ class DbWrapper:
     def update_data(self, table_name, update_data, row_id):
         return self.__db.update_data(table_name, update_data, row_id)
 
-    def exists(self, table_name, column_name, value):
-        return self.__db.exists(table_name, column_name, value)
+    def exists(self, table_name, condition_data):
+        return self.__db.exists(table_name, condition_data)

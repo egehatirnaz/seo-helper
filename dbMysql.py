@@ -114,23 +114,25 @@ class DbMysql:
             # UPDATE table SET last_update=now(), last_monitor=last_update WHERE id=1;
             update_string, sql = "", ""
             update_list = []
-            print(update_data)
             for (key, value) in update_data:
                 update_list.append(str(key) + '="' + str(value) + '"')
             update_string = ','.join(update_list)
 
             if update_string != "":
                 sql = 'UPDATE ' + table_name + ' SET ' + update_string + ' WHERE id=' + str(row_id) + ';'
-            print(sql)
             cursor.execute(sql)
             self._connection.commit()
             result = cursor.fetchall()
             return result
 
-    def exists(self, table_name, column_name, value):
+    def exists(self, table_name, condition_data):
         with self._connection.cursor() as cursor:
-
-            sql = "SELECT id, COUNT(*) as count from {0} WHERE `{1}` = '{2}' GROUP BY id".format(table_name, column_name, value)
+            condition_string = ""
+            condition_list = []
+            for (key, value) in condition_data:
+                condition_list.append('`' + str(key) + '`' + '="' + str(value) + '"')
+            condition_string = ' AND '.join(condition_list)
+            sql = "SELECT id, COUNT(*) as count from {0} WHERE ".format(table_name) + condition_string + " GROUP BY id"
             cursor.execute(sql)
             fetched = cursor.fetchone()
             if fetched and fetched['count'] > 0:
