@@ -34,6 +34,11 @@ def action_user():
         auth_key = request.headers['Auth-Key']
         if valid_auth(auth_key):  # Valid Auth Key, proceed as usual.
             if request.method == 'POST':
+
+                # JSON control.
+                if not check_json(request):
+                    return Response("Request body must be JSON.", status=400)
+
                 # Creating a user with given values.
                 json_data = request.get_json()
                 if 'name_surname' in json_data and 'password' in json_data and 'email' in json_data:
@@ -121,17 +126,22 @@ def action_seo_errors():
 
             # POST
             if request.method == 'POST':
+
+                # JSON control.
+                if not check_json(request):
+                    return Response("Request body must be JSON.", status=400)
+
                 # Creating a new SEO error with given name, description and error-condition.
                 json_data = request.get_json()
-                if 'name' in json_data and 'error_condition' in json_data and 'description' in json_data:
+                if 'name' in json_data and 'tag' in json_data and 'description' in json_data:
                     name = json_data['name']
-                    error_condition = json_data['error_condition']
+                    tag = json_data['tag']
                     description = json_data['description']
 
                     try:
                         db_obj.insert_data('seo_errors',
-                                           [(name, error_condition, description)],
-                                           COLUMNS=['name', 'error_condition', 'description'])
+                                           [(name, tag, description)],
+                                           COLUMNS=['name', 'tag', 'description'])
                         message = "A new error has been added successfully!"
                     except Exception as e:
                         print(e)
@@ -143,6 +153,11 @@ def action_seo_errors():
 
             # PUT
             elif request.method == 'PUT':
+
+                # JSON control.
+                if not check_json(request):
+                    return Response("Request body must be JSON.", status=400)
+
                 json_data = request.get_json()
                 if 'id' in json_data and 'data' in json_data:
                     row_id = json_data['id']
@@ -206,6 +221,10 @@ def action_analysed_url():
     if 'Auth-Key' in request.headers:
         auth_key = request.headers['Auth-Key']
         if valid_auth(auth_key):  # Valid Auth Key, proceed as usual.
+
+            # JSON control.
+            if not check_json(request):
+                return Response("Request body must be JSON.", status=400)
 
             # POST
             if request.method == 'POST':
@@ -283,6 +302,10 @@ def action_analysis_errors():
         auth_key = request.headers['Auth-Key']
         if valid_auth(auth_key):  # Valid Auth Key, proceed as usual.
 
+            # JSON control.
+            if not check_json(request):
+                return Response("Request body must be JSON.", status=400)
+
             # POST
             if request.method == 'POST':
                 # Creating a new record of analysed URL with given name, accessed-time and error_percentage.
@@ -336,6 +359,13 @@ def check_connection():
         return res
     else:
         return make_response(jsonify({"message": "Request body must be JSON"}), 400)
+
+
+def check_json(in_request):
+    if in_request.is_json:
+        return True
+    else:
+        return False
 
 
 @app.route('/', methods=['POST', 'GET'])

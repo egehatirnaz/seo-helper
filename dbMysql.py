@@ -116,7 +116,7 @@ class DbMysql:
             update_list = []
             print(update_data)
             for (key, value) in update_data:
-                update_list.append(key + '="' + value + '"')
+                update_list.append(str(key) + '="' + str(value) + '"')
             update_string = ','.join(update_list)
 
             if update_string != "":
@@ -126,6 +126,17 @@ class DbMysql:
             self._connection.commit()
             result = cursor.fetchall()
             return result
+
+    def exists(self, table_name, column_name, value):
+        with self._connection.cursor() as cursor:
+
+            sql = "SELECT id, COUNT(*) as count from {0} WHERE `{1}` = '{2}' GROUP BY id".format(table_name, column_name, value)
+            cursor.execute(sql)
+            fetched = cursor.fetchone()
+            if fetched and fetched['count'] > 0:
+                return fetched['id']
+            else:
+                return False
 
     def execute_custom_query(self, sql):
         with self._connection.cursor() as cursor:
