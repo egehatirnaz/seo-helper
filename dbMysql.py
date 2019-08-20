@@ -114,7 +114,6 @@ class DbMysql:
             # UPDATE table SET last_update=now(), last_monitor=last_update WHERE id=1;
             update_string, sql = "", ""
             update_list = []
-            value_filler = []
             for (key, value) in update_data:
                 if value is None:
                     update_list.append(str(key) + '=NULL')
@@ -125,19 +124,26 @@ class DbMysql:
             if update_string != "":
                 sql = 'UPDATE ' + table_name + ' SET ' + update_string + ' WHERE id=' + str(row_id) + ';'
                 # sql = 'UPDATE {0} SET '.format(table_name) + update_string + ' WHERE id={0};'.format(str(row_id))
-            cursor.execute(sql, value_filler)
+            cursor.execute(sql)
             self._connection.commit()
             result = cursor.fetchall()
             return result
 
-    def exists(self, table_name, condition_data):
+    def exists(self, table_name, condition_data, **kwargs):
         with self._connection.cursor() as cursor:
             condition_string = ""
             condition_list = []
             for (key, value) in condition_data:
                 condition_list.append('`' + str(key) + '`' + '="' + str(value) + '"')
+
+            for key, value in kwargs.items():
+                if key.lower() == 'exclude':
+                    exclude_col, exclude_val = value[0], value[1]
+                    condition_list.append('`' + str(exclude_col) + '`' + '!="' + str(exclude_val) + '"')
             condition_string = ' AND '.join(condition_list)
-            sql = "SELECT id, COUNT(*) as count from {0} WHERE ".format(table_name) + condition_string + " GROUP BY id"
+
+            sql = "SELECT id, COUNT(*) as count from {0} WHERE ".format(table_name)\
+                  + condition_string + " GROUP BY id"
             cursor.execute(sql)
             fetched = cursor.fetchone()
             if fetched and fetched['count'] > 0:

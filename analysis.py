@@ -101,6 +101,19 @@ class Analyser:
                         .format(checked_id, 4))
 
             # TODO: Check for duplicate attributes.
+            dup_title = self.db_obj.exists('analysed_url', [('meta_title', meta_title)], exclude=('id', checked_id))
+            dup_desc = self.db_obj.exists('analysed_url', [('meta_desc', meta_desc)], exclude=('id', checked_id))
+            dup_h1 = self.db_obj.exists('analysed_url', [('h1', h1)], exclude=('id', checked_id))
+            dup_h2 = self.db_obj.exists('analysed_url', [('h2', h2)], exclude=('id', checked_id))
+
+            if dup_title is not False:
+                print("Title is duplicate!")
+            if dup_desc is not False:
+                print("Desc is duplicate!")
+            if dup_h1 is not False:
+                print("H1 is duplicate!")
+            if dup_h2 is not False:
+                print("H2 is duplicate!")
 
             # Update the crawled website info.
             self.db_obj.update_data('analysed_url', [
