@@ -6,14 +6,19 @@ class Crawler:
     def get_crawled(self, source_url):
         try:
             r = requests.get(source_url)
-            source = BeautifulSoup(r.content, "html5lib")
-            return source
+            status_code = r.status_code
+            source = None
+            if status_code == 200:
+                source = BeautifulSoup(r.content, "html5lib")
+            return {'status_code': status_code, 'content': source}
         except Exception:
             return None
 
     def process_website(self, source_url):
-        soup = self.get_crawled(source_url)
-        if soup:
+        response = self.get_crawled(source_url)
+        status_code = response['status_code']
+        soup = response['content']
+        if soup and status_code == 200:
             found_meta_title = soup.find('title')
             possible_desc = soup.find('meta', attrs={"name": "description"})
             if possible_desc:
@@ -29,6 +34,7 @@ class Crawler:
             h2 = found_h2.string if found_h2 else None
 
             return {
+                "status_code": status_code,
                 "source_url": source_url,
                 "meta_title": meta_title,
                 "meta_desc": meta_desc,
@@ -37,6 +43,7 @@ class Crawler:
             }
         else:
             return {
+                "status_code": status_code,
                 "source_url": None,  # This will create a trouble later on, I'm sure of it.
                 "meta_title": None,
                 "meta_desc": None,

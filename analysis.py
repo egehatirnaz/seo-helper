@@ -11,20 +11,45 @@ class Analyser:
         self.mysql_obj = dbMysql.DbMysql(env.DB_HOST, env.DB_PORT, env.DB_USERNAME, env.DB_PASSWORD, env.DB_DATABASE)
         self.db_obj = dbClass.DbWrapper(self.mysql_obj)
 
-    def analyse(self, url):
+    def analyse(self, url, api_key):
+        # User-check with given API key.
+        id_check = self.db_obj.get_data("api_key",
+                                        COLUMNS="*",
+                                        WHERE=[{'init': {'api_key': api_key}}],
+                                        OPERATOR="eq")
+        # Check if API key is valid.
+        if id_check:
+            user_id = id_check[0]['user_id']
+            user_check = self.db_obj.get_data("user",
+                                              COLUMNS=["id", "name_surname", "email"],
+                                              WHERE=[{'init': {'id': user_id}}],
+                                              OPERATOR="eq")
+            # Check which user's key it is.
+            if user_check:
+                user_data = user_check[0]
+                user_name = user_data['name_surname']
+                user_email = user_data['email']
+            else:
+                return None, "No user found for this valid API key."
+        else:
+            return None, "Your API key is not valid."
+
         website_data = self.crawler.process_website(url)
+
+        if website_data['status_code'] != 200:
+            return None, "Non-OK HTTP response recieved!"
 
         meta_title = website_data['meta_title']
         meta_desc = website_data['meta_desc']
         h1 = website_data['h1']
         h2 = website_data['h2']
 
-        # TODO: What if the crawled page is actually a non-200 page? 400, 404, etc.
-
         # Add to analysed_url table of our database with the correct timestamp.
 
         checked_id = self.db_obj.exists('analysed_url', [('url', url)])
+        url_id = -1
         if checked_id:  # It exists. Reset the error percentage for further analysis and update the time accessed to it.
+            url_id = checked_id
             try:
                 self.db_obj.update_data('analysed_url',
                                         [('time_accessed', time.time())],
@@ -170,6 +195,7 @@ class Analyser:
                                         [(url, time.time(), meta_title, meta_desc, h1, h2)],
                                         COLUMNS=['url', 'time_accessed', 'meta_title', 'meta_desc', 'h1', 'h2'])
                 insert_id = self.db_obj.get_last_insert_id()
+                url_id = insert_id
 
                 # Check for missing attributes.
                 if meta_title is None:
@@ -239,8 +265,19 @@ class Analyser:
                 print(e)
                 return None, "Action could not be performed. Query did not execute successfully."
 
+        # User's analysis was successful.
+        try:
+            self.db_obj.insert_data('analysis_user',
+                                    [(url_id, user_id, time.time())],
+                                    COLUMNS=['url_id', 'user_id', 'time'])
+            print("Analysis request made by user #{0} ({1}) is successful!".format(user_id, user_name))
+            # TODO: Notify the user about errors & fixes via email.
+        except Exception as e:
+            print(e)
+            return None, "Action could not be performed. Query did not execute successfully."
+
     def main(self):
-        self.analyse("http://127.0.0.1:5000/test-analysis")
+        self.analyse("http://127.0.0.1:5000/test-analysis", "7882e9e22bfa7dc96a6e8333a66091c51d5fe012")
 
 
 if __name__ == '__main__':
