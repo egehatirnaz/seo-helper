@@ -15,7 +15,11 @@ class Crawler:
         soup = self.get_crawled(source_url)
         if soup:
             found_meta_title = soup.find('title')
-            found_meta_desc = soup.find('meta', attrs={"name": "description"})['content']
+            possible_desc = soup.find('meta', attrs={"name": "description"})
+            if possible_desc:
+                found_meta_desc = possible_desc['content']
+            else:
+                found_meta_desc = None
             found_h1 = soup.find('h1')
             found_h2 = soup.find('h2')
 
@@ -32,7 +36,13 @@ class Crawler:
                 "h2": h2
             }
         else:
-            return None
+            return {
+                "source_url": None,  # This will create a trouble later on, I'm sure of it.
+                "meta_title": None,
+                "meta_desc": None,
+                "h1": None,
+                "h2": None
+            }
 
     def main(self):
         print(self.process_website("https://www.jasflkjaslfkjaslfkjasfklkasşkfas.com"))

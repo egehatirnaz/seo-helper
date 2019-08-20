@@ -114,13 +114,18 @@ class DbMysql:
             # UPDATE table SET last_update=now(), last_monitor=last_update WHERE id=1;
             update_string, sql = "", ""
             update_list = []
+            value_filler = []
             for (key, value) in update_data:
-                update_list.append(str(key) + '="' + str(value) + '"')
+                if value is None:
+                    update_list.append(str(key) + '=NULL')
+                else:
+                    update_list.append(str(key) + '="' + str(value) + '"')
             update_string = ','.join(update_list)
 
             if update_string != "":
                 sql = 'UPDATE ' + table_name + ' SET ' + update_string + ' WHERE id=' + str(row_id) + ';'
-            cursor.execute(sql)
+                # sql = 'UPDATE {0} SET '.format(table_name) + update_string + ' WHERE id={0};'.format(str(row_id))
+            cursor.execute(sql, value_filler)
             self._connection.commit()
             result = cursor.fetchall()
             return result

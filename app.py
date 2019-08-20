@@ -1,4 +1,4 @@
-from flask import Flask, request, Response, jsonify, make_response
+from flask import Flask, request, Response, jsonify, make_response, render_template
 import bcrypt
 import traceback
 import time
@@ -228,17 +228,16 @@ def action_analysed_url():
 
             # POST
             if request.method == 'POST':
-                # Creating a new record of analysed URL with given name, accessed-time and error_percentage.
+                # Creating a new record of analysed URL with given name, accessed-time.
                 json_data = request.get_json()
-                if 'url' in json_data and 'time_accessed' in json_data and 'error_percentage' in json_data:
+                if 'url' in json_data and 'time_accessed' in json_data:
                     url = json_data['url']
                     time_accessed = json_data['time_accessed']
-                    error_percentage = json_data['error_percentage']
 
                     try:
                         db_obj.insert_data('analysed_url',
-                                           [(url, time_accessed, error_percentage)],
-                                           COLUMNS=['url', 'time_accessed', 'error_percentage'])
+                                           [(url, time_accessed)],
+                                           COLUMNS=['url', 'time_accessed'])
                         message = "A new URL has been added successfully!"
                     except Exception as e:
                         print(e)
@@ -308,7 +307,7 @@ def action_analysis_errors():
 
             # POST
             if request.method == 'POST':
-                # Creating a new record of analysed URL with given name, accessed-time and error_percentage.
+                # Creating a new record of analysed URL with given name, accessed-time.
                 json_data = request.get_json()
                 if 'url_id' in json_data and 'error_id' in json_data:
                     url_id = json_data['url_id']
@@ -359,6 +358,11 @@ def check_connection():
         return res
     else:
         return make_response(jsonify({"message": "Request body must be JSON"}), 400)
+
+
+@app.route('/test-analysis', methods=['GET'])
+def test_analysis():
+    return render_template("test_html.html")
 
 
 def check_json(in_request):
