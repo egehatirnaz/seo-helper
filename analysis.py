@@ -106,14 +106,55 @@ class Analyser:
             dup_h1 = self.db_obj.exists('analysed_url', [('h1', h1)], exclude=('id', checked_id))
             dup_h2 = self.db_obj.exists('analysed_url', [('h2', h2)], exclude=('id', checked_id))
 
-            if dup_title is not False:
-                print("Title is duplicate!")
-            if dup_desc is not False:
-                print("Desc is duplicate!")
-            if dup_h1 is not False:
-                print("H1 is duplicate!")
-            if dup_h2 is not False:
-                print("H2 is duplicate!")
+            # Warn if the error did not exist before or notify if the error is fixed this time.
+
+            # Title
+            if dup_title is not False and 5 not in url_errors:
+                print("Title is duplicate and this was not noted before!")
+                self.db_obj.insert_data('analysis_errors',
+                                        [(checked_id, 5)],
+                                        COLUMNS=['url_id', 'error_id'])
+            elif dup_title is False and 5 in url_errors:
+                print("Title was duplicate but it seems to be fixed now.")
+                self.db_obj.execute(
+                    "DELETE FROM analysis_errors WHERE url_id = {0} AND error_id = {1} LIMIT 1"
+                        .format(checked_id, 5))
+
+            # Desc
+            if dup_desc is not False and 6 not in url_errors:
+                print("Desc is duplicate and this was not noted before!")
+                self.db_obj.insert_data('analysis_errors',
+                                        [(checked_id, 6)],
+                                        COLUMNS=['url_id', 'error_id'])
+            elif dup_desc is False and 6 in url_errors:
+                print("Desc was duplicate but it seems to be fixed now.")
+                self.db_obj.execute(
+                    "DELETE FROM analysis_errors WHERE url_id = {0} AND error_id = {1} LIMIT 1"
+                        .format(checked_id, 6))
+
+            # H1
+            if dup_h1 is not False and 7 not in url_errors:
+                print("H1 is duplicate and this was not noted before!")
+                self.db_obj.insert_data('analysis_errors',
+                                        [(checked_id, 7)],
+                                        COLUMNS=['url_id', 'error_id'])
+            elif dup_h1 is False and 7 in url_errors:
+                print("H1 was duplicate but it seems to be fixed now.")
+                self.db_obj.execute(
+                    "DELETE FROM analysis_errors WHERE url_id = {0} AND error_id = {1} LIMIT 1"
+                        .format(checked_id, 7))
+
+            # H2
+            if dup_h2 is not False and 8 not in url_errors:
+                print("H2 is duplicate and this was not noted before!")
+                self.db_obj.insert_data('analysis_errors',
+                                        [(checked_id, 8)],
+                                        COLUMNS=['url_id', 'error_id'])
+            elif dup_h2 is False and 8 in url_errors:
+                print("H2 was duplicate but it seems to be fixed now.")
+                self.db_obj.execute(
+                    "DELETE FROM analysis_errors WHERE url_id = {0} AND error_id = {1} LIMIT 1"
+                        .format(checked_id, 8))
 
             # Update the crawled website info.
             self.db_obj.update_data('analysed_url', [
@@ -155,9 +196,33 @@ class Analyser:
                                             [(insert_id, 4)],
                                             COLUMNS=['url_id', 'error_id'])
 
-                # TODO: Check for duplicate attributes. EXCEPT FOR THE NEW RECORD.
-                #  (or it will always show duplicate error.)
+                # TODO: Check for duplicate attributes.
+                dup_title = self.db_obj.exists('analysed_url', [('meta_title', meta_title)], exclude=('id', insert_id))
+                dup_desc = self.db_obj.exists('analysed_url', [('meta_desc', meta_desc)], exclude=('id', insert_id))
+                dup_h1 = self.db_obj.exists('analysed_url', [('h1', h1)], exclude=('id', insert_id))
+                dup_h2 = self.db_obj.exists('analysed_url', [('h2', h2)], exclude=('id', insert_id))
 
+                # Warn if the error did not exist before or notify if the error is fixed this time.
+                if dup_title is not False:
+                    print("Title is duplicate!")
+                    self.db_obj.insert_data('analysis_errors',
+                                            [(insert_id, 5)],
+                                            COLUMNS=['url_id', 'error_id'])
+                if dup_desc is not False:
+                    print("Desc is duplicate!")
+                    self.db_obj.insert_data('analysis_errors',
+                                            [(insert_id, 6)],
+                                            COLUMNS=['url_id', 'error_id'])
+                if dup_h1 is not False:
+                    print("H1 is duplicate!")
+                    self.db_obj.insert_data('analysis_errors',
+                                            [(insert_id, 7)],
+                                            COLUMNS=['url_id', 'error_id'])
+                if dup_h2 is not False:
+                    print("H2 is duplicate!")
+                    self.db_obj.insert_data('analysis_errors',
+                                            [(insert_id, 8)],
+                                            COLUMNS=['url_id', 'error_id'])
             except Exception as e:
                 print(e)
                 return None, "Action could not be performed. Query did not execute successfully."
