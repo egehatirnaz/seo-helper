@@ -125,7 +125,7 @@ class Analyser:
                     "DELETE FROM analysis_errors WHERE url_id = {0} AND error_id = {1} LIMIT 1"
                         .format(checked_id, 4))
 
-            # TODO: Check for duplicate attributes.
+            # Checking for duplicate meta data.
             dup_title = self.db_obj.exists('analysed_url', [('meta_title', meta_title)], exclude=('id', checked_id))
             dup_desc = self.db_obj.exists('analysed_url', [('meta_desc', meta_desc)], exclude=('id', checked_id))
             dup_h1 = self.db_obj.exists('analysed_url', [('h1', h1)], exclude=('id', checked_id))
@@ -222,7 +222,7 @@ class Analyser:
                                             [(insert_id, 4)],
                                             COLUMNS=['url_id', 'error_id'])
 
-                # TODO: Check for duplicate attributes.
+                # Checking for duplicate meta data.
                 dup_title = self.db_obj.exists('analysed_url', [('meta_title', meta_title)], exclude=('id', insert_id))
                 dup_desc = self.db_obj.exists('analysed_url', [('meta_desc', meta_desc)], exclude=('id', insert_id))
                 dup_h1 = self.db_obj.exists('analysed_url', [('h1', h1)], exclude=('id', insert_id))
