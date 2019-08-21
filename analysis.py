@@ -12,7 +12,7 @@ class Analyser:
         self.mysql_obj = dbMysql.DbMysql(env.DB_HOST, env.DB_PORT, env.DB_USERNAME, env.DB_PASSWORD, env.DB_DATABASE)
         self.db_obj = dbClass.DbWrapper(self.mysql_obj)
 
-    def analyse(self, url, api_key):
+    def auth(self, api_key):
         # User-check with given API key.
         id_check = self.db_obj.get_data("api_key",
                                         COLUMNS="*",
@@ -28,17 +28,23 @@ class Analyser:
             # Check which user's key it is.
             if user_check:
                 user_data = user_check[0]
-                user_name = user_data['name_surname']
-                user_email = user_data['email']
+                return {'user_id': user_id, 'name': user_data['name_surname'], 'email': user_data['email']}
             else:
-                return None, "No user found for this valid API key."
+                return False
         else:
-            return None, "Your API key is not valid."
+            return False
 
+    def analyse(self, url, user_data):
+        if user_data is not False:
+            user_id = user_data['user_id']
+            user_name = user_data['name']
+        else:
+            return None, "Unauthorised!"
+
+        # Proceed for website crawling.
         website_data = self.crawler.process_website(url)
-
         if website_data['status_code'] != 200:
-            return None, "Non-OK HTTP response recieved!"
+            return None, "Non-OK HTTP response received!"
 
         meta_title = website_data['meta_title']
         meta_desc = website_data['meta_desc']
@@ -46,7 +52,6 @@ class Analyser:
         h2 = website_data['h2']
 
         # Add to analysed_url table of our database with the correct timestamp.
-
         checked_id = self.db_obj.exists('analysed_url', [('url', url)])
         url_id = -1
         if checked_id:  # It exists. Reset the error percentage for further analysis and update the time accessed to it.
@@ -282,29 +287,55 @@ class Analyser:
                 WHERE analysed_url.id = {0}""".format(url_id)
 
                 issues = self.db_obj.execute(sql)
-                urls_error_list = []
                 error_array = []
                 for issue in issues:
                     error_array.append([issue['name'], issue['description']])
-                urls_error_list.append({url: error_array})
 
-                try:
-                    # Notify the user about errors & fixes via email.
-                    notifier = Notifier()
-                    print(notifier.notify(user_email, user_name, urls_error_list))
-                except Exception as e:
-                    print(e)
-                    return None, "Email could not be sent!"
+                # Fucking successful!
+                return {url: error_array}
+
             except Exception as e:
                 print(e)
                 return None, "Issues could not be obtained."
-
         except Exception as e:
             print(e)
             return None, "Action could not be performed. Query did not execute successfully."
 
+    def request_analysis(self, url, api_key, mode):
+        auth = self.auth(api_key)
+        if auth is False:
+            return None, "Invalid API key."
+
+        # Proceed as usual.
+        user_data = auth
+        user_name = auth['name']
+        user_email = auth['email']
+
+        # Obtained results from website(s) will be here.
+        urls_error_list = []
+
+        # Check the request mode.
+        if mode != "batch":
+            urls_error_list.append(self.analyse(url, user_data))
+
+        else:
+            # TODO: What do you do in batch mode? Get TXT? Get sitemap.xml? Decide it later.
+            urls_error_list.append(self.analyse(url, user_data))  # Change this later!
+
+        try:
+            # Notify the user about errors & fixes via email.
+            notifier = Notifier()
+            result = notifier.notify(user_email, user_name, urls_error_list)
+        except Exception as e:
+            print(e)
+            return None, "Email could not be sent!"
+        # End of the road.
+        return result
+
     def main(self):
-        print(self.analyse("http://127.0.0.1:5000/test-analysis", "7882e9e22bfa7dc96a6e8333a66091c51d5fe012"))
+        print(self.request_analysis("http://127.0.0.1:5000/test-analysis",
+                                    "7882e9e22bfa7dc96a6e8333a66091c51d5fe012",
+                                    "single"))
 
 
 if __name__ == '__main__':

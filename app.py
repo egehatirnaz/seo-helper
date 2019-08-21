@@ -381,5 +381,10 @@ def index():
     return Response(status=401)
 
 
+@app.route('/sign-up', methods=['GET'])
+def signup():
+    return render_template("sign-up.html")
+
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=7070)
