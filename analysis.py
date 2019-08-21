@@ -1,4 +1,5 @@
 from crawl import Crawler
+from notifier.notifier import Notifier
 import dbMysql
 import dbClass
 import env
@@ -271,13 +272,39 @@ class Analyser:
                                     [(url_id, user_id, time.time())],
                                     COLUMNS=['url_id', 'user_id', 'time'])
             print("Analysis request made by user #{0} ({1}) is successful!".format(user_id, user_name))
-            # TODO: Notify the user about errors & fixes via email.
+
+            try:
+                # Get the issues for the last time.
+                sql = """SELECT seo_errors.name, seo_errors.description
+                FROM analysis_errors 
+                JOIN analysed_url ON analysis_errors.url_id = analysed_url.id 
+                JOIN seo_errors ON analysis_errors.error_id = seo_errors.id 
+                WHERE analysed_url.id = {0}""".format(url_id)
+
+                issues = self.db_obj.execute(sql)
+                urls_error_list = []
+                error_array = []
+                for issue in issues:
+                    error_array.append([issue['name'], issue['description']])
+                urls_error_list.append({url: error_array})
+
+                try:
+                    # Notify the user about errors & fixes via email.
+                    notifier = Notifier()
+                    print(notifier.notify(user_email, user_name, urls_error_list))
+                except Exception as e:
+                    print(e)
+                    return None, "Email could not be sent!"
+            except Exception as e:
+                print(e)
+                return None, "Issues could not be obtained."
+
         except Exception as e:
             print(e)
             return None, "Action could not be performed. Query did not execute successfully."
 
     def main(self):
-        print(self.analyse("http://127.0.0.1:5000/test-analysi", "7882e9e22bfa7dc96a6e8333a66091c51d5fe012"))
+        print(self.analyse("http://127.0.0.1:5000/test-analysis", "7882e9e22bfa7dc96a6e8333a66091c51d5fe012"))
 
 
 if __name__ == '__main__':
