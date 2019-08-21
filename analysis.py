@@ -277,7 +277,7 @@ class Analyser:
             return None, "Action could not be performed. Query did not execute successfully."
 
     def main(self):
-        self.analyse("http://127.0.0.1:5000/test-analysis", "7882e9e22bfa7dc96a6e8333a66091c51d5fe012")
+        print(self.analyse("http://127.0.0.1:5000/test-analysi", "7882e9e22bfa7dc96a6e8333a66091c51d5fe012"))
 
 
 if __name__ == '__main__':
