@@ -131,11 +131,18 @@ class Analyser:
                     "DELETE FROM analysis_errors WHERE url_id = {0} AND error_id = {1} LIMIT 1"
                         .format(checked_id, 4))
 
-            # Checking for duplicate meta data.
-            dup_title = self.db_obj.exists('analysed_url', [('meta_title', meta_title)], exclude=('id', checked_id))
-            dup_desc = self.db_obj.exists('analysed_url', [('meta_desc', meta_desc)], exclude=('id', checked_id))
-            dup_h1 = self.db_obj.exists('analysed_url', [('h1', h1)], exclude=('id', checked_id))
-            dup_h2 = self.db_obj.exists('analysed_url', [('h2', h2)], exclude=('id', checked_id))
+            # Checking for duplicate meta data. Empty data doesn't count as a duplicate.
+            dup_title = False if meta_title is None \
+                else self.db_obj.exists('analysed_url', [('meta_title', meta_title)], exclude=('id', checked_id))
+
+            dup_desc = False if meta_desc is None \
+                else self.db_obj.exists('analysed_url', [('meta_desc', meta_desc)], exclude=('id', checked_id))
+
+            dup_h1 = False if h1 is None \
+                else self.db_obj.exists('analysed_url', [('h1', h1)], exclude=('id', checked_id))
+
+            dup_h2 = False if h2 is None \
+                else self.db_obj.exists('analysed_url', [('h2', h2)], exclude=('id', checked_id))
 
             # Warn if the error did not exist before or notify if the error is fixed this time.
 
@@ -228,11 +235,18 @@ class Analyser:
                                             [(insert_id, 4)],
                                             COLUMNS=['url_id', 'error_id'])
 
-                # Checking for duplicate meta data.
-                dup_title = self.db_obj.exists('analysed_url', [('meta_title', meta_title)], exclude=('id', insert_id))
-                dup_desc = self.db_obj.exists('analysed_url', [('meta_desc', meta_desc)], exclude=('id', insert_id))
-                dup_h1 = self.db_obj.exists('analysed_url', [('h1', h1)], exclude=('id', insert_id))
-                dup_h2 = self.db_obj.exists('analysed_url', [('h2', h2)], exclude=('id', insert_id))
+                # Checking for duplicate meta data. Empty data doesn't count as duplicate.
+                dup_title = False if meta_title is None \
+                    else self.db_obj.exists('analysed_url', [('meta_title', meta_title)], exclude=('id', insert_id))
+
+                dup_desc = False if meta_desc is None \
+                    else self.db_obj.exists('analysed_url', [('meta_desc', meta_desc)], exclude=('id', insert_id))
+
+                dup_h1 = False if h1 is None \
+                    else self.db_obj.exists('analysed_url', [('h1', h1)], exclude=('id', insert_id))
+
+                dup_h2 = False if h2 is None \
+                    else self.db_obj.exists('analysed_url', [('h2', h2)], exclude=('id', insert_id))
 
                 # Warn if the error did not exist before or notify if the error is fixed this time.
                 if dup_title is not False:
@@ -320,7 +334,15 @@ class Analyser:
 
         else:
             # TODO: What do you do in batch mode? Get TXT? Get sitemap.xml? Decide it later.
-            urls_error_list.append(self.analyse(url, user_data))  # Change this later!
+
+            # for API!
+            for link in url:
+                urls_error_list.append(self.analyse(link, user_data))
+
+            # THIS IS FOR txt VERSION!
+            # url_list = [line.rstrip('\n') for line in open("samples/batch.txt")]
+            # for url in url_list:
+            #     urls_error_list.append(self.analyse(url, user_data))
 
         try:
             # Notify the user about errors & fixes via email.
@@ -330,12 +352,12 @@ class Analyser:
             print(e)
             return None, "Email could not be sent!"
         # End of the road.
-        return result
+        return result, "Success!"
 
     def main(self):
         print(self.request_analysis("http://127.0.0.1:5000/test-analysis",
                                     "7882e9e22bfa7dc96a6e8333a66091c51d5fe012",
-                                    "single"))
+                                    "batch"))
 
 
 if __name__ == '__main__':

@@ -1,4 +1,5 @@
 from flask import Flask, request, Response, jsonify, make_response, render_template
+from analysis import Analyser
 import bcrypt
 import traceback
 import time
@@ -347,6 +348,54 @@ def action_analysis_errors():
             else:
                 return Response(status=405)
     return Response(status=401)
+
+
+@app.route('/api/analysis', methods=['POST'])
+def request_analysis():
+    # JSON control.
+    if not check_json(request):
+        return Response("Request body must be JSON.", status=400)
+
+    # POST
+    if request.method == 'POST':
+        json_data = request.get_json()
+        if 'url' in json_data and 'api_key' in json_data:
+            url = json_data['url']
+            api_key = json_data['api_key']
+
+            analyser = Analyser()
+            result = analyser.request_analysis(url, api_key, "single")
+            message = result[1]
+            return make_response(message, 200)
+        else:
+            return Response("Invalid parameters.", status=400)
+    # 405
+    else:
+        return Response(status=405)
+
+
+@app.route('/api/batch-analysis', methods=['POST'])
+def request_analysis_batch():
+    # JSON control.
+    if not check_json(request):
+        return Response("Request body must be JSON.", status=400)
+
+    # POST
+    if request.method == 'POST':
+        json_data = request.get_json()
+        if 'url' in json_data and 'api_key' in json_data:
+            url = json_data['url']
+            api_key = json_data['api_key']
+
+            analyser = Analyser()
+            result = analyser.request_analysis(url, api_key, "batch")
+            message = result[1]
+            return make_response(message, 200)
+        else:
+            return Response("Invalid parameters.", status=400)
+    # 405
+    else:
+        return Response(status=405)
 
 
 @app.route('/check-connection', methods=['POST', 'GET'])
