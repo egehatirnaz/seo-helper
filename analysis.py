@@ -53,7 +53,6 @@ class Analyser:
 
         # Add to analysed_url table of our database with the correct timestamp.
         checked_id = self.db_obj.exists('analysed_url', [('url', url)])
-        url_id = -1
         if checked_id:  # It exists. Reset the error percentage for further analysis and update the time accessed to it.
             url_id = checked_id
             try:
@@ -69,7 +68,8 @@ class Analyser:
 
             # Get the problems related to that url id.
             url_errors = [row['error_id'] for row in
-                          self.db_obj.execute("SELECT error_id FROM analysis_errors WHERE url_id = " + str(checked_id))]
+                          self.db_obj.execute(
+                              "SELECT error_id FROM analysis_errors WHERE url_id = " + str(checked_id))]
 
             # Title
             if meta_title is None and 2 not in url_errors:
@@ -81,8 +81,8 @@ class Analyser:
                 print("Title was missing but it seems to be fixed now.")
                 try:
                     self.db_obj.execute(
-                        "DELETE FROM analysis_errors WHERE url_id = {0} AND error_id = {1} LIMIT 1"
-                            .format(checked_id, 2))
+                        "DELETE FROM analysis_errors "
+                        "WHERE url_id = {0} AND error_id = {1} LIMIT 1".format(checked_id, 2))
                 except Exception as e:
                     print(e)
 
@@ -96,8 +96,8 @@ class Analyser:
                 print("Desc was missing but it seems to be fixed now.")
                 try:
                     self.db_obj.execute(
-                        "DELETE FROM analysis_errors WHERE url_id = {0} AND error_id = {1} LIMIT 1"
-                            .format(checked_id, 1))
+                        "DELETE FROM analysis_errors "
+                        "WHERE url_id = {0} AND error_id = {1} LIMIT 1".format(checked_id, 1))
                 except Exception as e:
                     print(e)
 
@@ -114,8 +114,8 @@ class Analyser:
                 print("H1 was missing but it seems to be fixed now.")
                 try:
                     self.db_obj.execute(
-                        "DELETE FROM analysis_errors WHERE url_id = {0} AND error_id = {1} LIMIT 1"
-                            .format(checked_id, 3))
+                        "DELETE FROM analysis_errors "
+                        "WHERE url_id = {0} AND error_id = {1} LIMIT 1".format(checked_id, 3))
                 except Exception as e:
                     print(e)
 
@@ -128,8 +128,8 @@ class Analyser:
             elif h2 is not None and 4 in url_errors:
                 print("H2 was missing but it seems to be fixed now.")
                 self.db_obj.execute(
-                    "DELETE FROM analysis_errors WHERE url_id = {0} AND error_id = {1} LIMIT 1"
-                        .format(checked_id, 4))
+                    "DELETE FROM analysis_errors "
+                    "WHERE url_id = {0} AND error_id = {1} LIMIT 1".format(checked_id, 4))
 
             # Checking for duplicate meta data. Empty data doesn't count as a duplicate.
             dup_title = False if meta_title is None \
@@ -155,8 +155,8 @@ class Analyser:
             elif dup_title is False and 5 in url_errors:
                 print("Title was duplicate but it seems to be fixed now.")
                 self.db_obj.execute(
-                    "DELETE FROM analysis_errors WHERE url_id = {0} AND error_id = {1} LIMIT 1"
-                        .format(checked_id, 5))
+                    "DELETE FROM analysis_errors "
+                    "WHERE url_id = {0} AND error_id = {1} LIMIT 1".format(checked_id, 5))
 
             # Desc
             if dup_desc is not False and 6 not in url_errors:
@@ -167,8 +167,8 @@ class Analyser:
             elif dup_desc is False and 6 in url_errors:
                 print("Desc was duplicate but it seems to be fixed now.")
                 self.db_obj.execute(
-                    "DELETE FROM analysis_errors WHERE url_id = {0} AND error_id = {1} LIMIT 1"
-                        .format(checked_id, 6))
+                    "DELETE FROM analysis_errors "
+                    "WHERE url_id = {0} AND error_id = {1} LIMIT 1".format(checked_id, 6))
 
             # H1
             if dup_h1 is not False and 7 not in url_errors:
@@ -179,8 +179,8 @@ class Analyser:
             elif dup_h1 is False and 7 in url_errors:
                 print("H1 was duplicate but it seems to be fixed now.")
                 self.db_obj.execute(
-                    "DELETE FROM analysis_errors WHERE url_id = {0} AND error_id = {1} LIMIT 1"
-                        .format(checked_id, 7))
+                    "DELETE FROM analysis_errors "
+                    "WHERE url_id = {0} AND error_id = {1} LIMIT 1".format(checked_id, 7))
 
             # H2
             if dup_h2 is not False and 8 not in url_errors:
@@ -191,8 +191,8 @@ class Analyser:
             elif dup_h2 is False and 8 in url_errors:
                 print("H2 was duplicate but it seems to be fixed now.")
                 self.db_obj.execute(
-                    "DELETE FROM analysis_errors WHERE url_id = {0} AND error_id = {1} LIMIT 1"
-                        .format(checked_id, 8))
+                    "DELETE FROM analysis_errors "
+                    "WHERE url_id = {0} AND error_id = {1} LIMIT 1".format(checked_id, 8))
 
             # Update the crawled website info.
             self.db_obj.update_data('analysed_url', [
@@ -330,19 +330,14 @@ class Analyser:
 
         # Check the request mode.
         if mode != "batch":
-            urls_error_list.append(self.analyse(url, user_data))
-
+            if isinstance(url, str):
+                urls_error_list.append(self.analyse(url, user_data))
+            else:
+                return None, "Provided URL is not a string."
         else:
-            # TODO: What do you do in batch mode? Get TXT? Get sitemap.xml? Decide it later.
-
             # for API!
             for link in url:
                 urls_error_list.append(self.analyse(link, user_data))
-
-            # THIS IS FOR txt VERSION!
-            # url_list = [line.rstrip('\n') for line in open("samples/batch.txt")]
-            # for url in url_list:
-            #     urls_error_list.append(self.analyse(url, user_data))
 
         try:
             # Notify the user about errors & fixes via email.

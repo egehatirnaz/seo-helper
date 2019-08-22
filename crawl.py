@@ -3,7 +3,8 @@ import requests
 
 
 class Crawler:
-    def get_crawled(self, source_url):
+    @staticmethod
+    def get_crawled(source_url):
         try:
             r = requests.get(source_url)
             status_code = r.status_code
@@ -11,7 +12,8 @@ class Crawler:
             if status_code == 200:
                 source = BeautifulSoup(r.content, "html5lib")
             return {'status_code': status_code, 'content': source}
-        except Exception:
+        except Exception as e:
+            print(e)
             return None
 
     def process_website(self, source_url):
