@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+   <meta charset="UTF-8">
+   <title>SEO Helper - Analyse</title>
+   <meta name="description"
+         content="Start analysing your websites for common SEO mistakes!">
+
+   <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+           integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+           crossorigin="anonymous"></script>
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
+           integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
+           crossorigin="anonymous"></script>
+   <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
+           integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
+           crossorigin="anonymous"></script>
+   <script src="http://code.jquery.com/jquery-1.9.1.js"></script>
+
+   <!-- Latest compiled and minified CSS -->
+   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+         integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+
+   <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
+   <style>
+      .input-prompt {
+         margin: 0 0 3px 0 !important;
+      }
+   </style>
+</head>
+<body>
+<div class="header">
+   <a href="/" class="logo">SEO Helper</a>
+   <div class="header-right">
+      <a href="account/settings">{{username}}</a>
+      <a class="active" href="/account/analyse">Analyse</a>
+      <a href="/logout">Logout</a>
+   </div>
+</div>
+<div class="page">
+   <div class="container">
+      <div class="content large">
+         <h1>Make A New Analysis Request</h1>
+         <p>You can choose between requesting a single SEO analysis or requesting a batch SEO analysis with your
+            provided URL list.</p>
+         <div id="single-analysis-div" class="analysis-choice-wrapper">
+            <h3>Single Analysis</h3>
+            <div class="form-heading" style="margin-bottom: 10px;">
+               <p style="display:inline">Please provide a URL for your request.</p>
+            </div>
+            <div class="form-body">
+               <form id="single-analysis" method="POST" style="width: 100%;">
+                  <div class="form-field">
+                     <p class="input-prompt">Target URL</p>
+                     <input id="single_url" type="text" name="url">
+                  </div>
+                  <input type="submit" class="btn btn-secondary" value="Analyse!">
+               </form>
+            </div>
+            <p class="form-message" id="response_single"></p>
+         </div>
+         <div id="batch-analysis-div" class="analysis-choice-wrapper">
+            <h3>Batch Analysis</h3>
+            <div class="form-heading" style="margin-bottom: 10px;">
+               <p style="display:inline">Please provide multiple URLs seperated by new lines for your batch request.</p>
+            </div>
+            <div class="form-body">
+               <form id="batch-analysis" method="POST" style="width: 100%;">
+                  <div class="form-field">
+                     <label for="batch_urls" class="input-prompt">Target URLs</label><br>
+                     <textarea id="batch_urls" name="url"></textarea>
+                  </div>
+                  <input type="submit" class="btn btn-secondary" value="Analyse Them All!">
+               </form>
+            </div>
+            <p class="form-message" id="response_batch"></p>
+         </div>
+      </div>
+   </div>
+</div>
+</body>
+<script>
+    $(function () {
+        // SINGLE REQUEST
+        $('#single-analysis').on('submit', function (e) {
+            e.preventDefault();
+            let message = "";
+            let url = $('#single_url').val();
+            if (url === "") {
+                message = "This field cannot be empty!"
+            } else {
+                message = "";
+                $.ajax({
+                    type: 'POST',
+                    headers: {
+                        'Auth-Key': '{{Auth_Key}}',
+                        'Content-Type': 'application/json'
+                    },
+                    url: "{{ url_for('request_analysis') }}",
+                    contentType: 'application/json',
+                    data: JSON.stringify({
+                        url: url,
+                        api_key: "{{api_key}}"
+                    }),
+                    success: function (data) {
+                        console.log(data);
+                        message = data;
+                        $('#response_single').text(message);
+                    },
+                    error: function (xhr, status, error) {
+                        console.log("shit's on fire yo.");
+                        console.log(xhr, status, error);
+                        $('#response_single').text(message);
+                    }
+                });
+            }
+            $('#response_single').text(message);
+        });
+
+        // BATCH REQUEST
+        $('#batch-analysis').on('submit', function (e) {
+            e.preventDefault();
+            let message = "";
+            let urls = $('#batch_urls').val().split("\n");
+            if (urls === "") {
+                message = "This field cannot be empty!"
+            } else {
+                message = "";
+                $.ajax({
+                    type: 'POST',
+                    headers: {
+                        'Auth-Key': '{{Auth_Key}}',
+                        'Content-Type': 'application/json'
+                    },
+                    url: "{{ url_for('request_analysis_batch') }}",
+                    contentType: 'application/json',
+                    data: JSON.stringify({
+                        url: urls,
+                        api_key: "{{api_key}}"
+                    }),
+                    success: function (data) {
+                        console.log(data);
+                        message = data;
+                        $('#response_batch').text(message);
+                    },
+                    error: function (xhr, status, error) {
+                        console.log("shit's on fire yo.");
+                        console.log(xhr, status, error);
+                        $('#response_batch').text(message);
+                    }
+                });
+            }
+            $('#response_batch').text(message);
+        });
+    });
+</script>
+</html>

@@ -306,7 +306,7 @@ class Analyser:
                     error_array.append([issue['name'], issue['description']])
 
                 # Fucking successful!
-                return {url: error_array}
+                return {url: error_array}, "Success!"
 
             except Exception as e:
                 print(e)
@@ -331,13 +331,13 @@ class Analyser:
         # Check the request mode.
         if mode != "batch":
             if isinstance(url, str):
-                urls_error_list.append(self.analyse(url, user_data))
+                urls_error_list.append(self.analyse(url, user_data)[0])
             else:
                 return None, "Provided URL is not a string."
         else:
             # for API!
             for link in url:
-                urls_error_list.append(self.analyse(link, user_data))
+                urls_error_list.append(self.analyse(link, user_data)[0])
 
         try:
             # Notify the user about errors & fixes via email.

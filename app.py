@@ -78,7 +78,10 @@ def action_user_login():
                         checked_pass = checked_user['password']
                         passcheck = check_password(password, checked_pass)
                         if passcheck:
-                            # TODO: Password is correct, set the cookie var and redirect the user.
+                            api_key = db_obj.get_data("api_key",
+                                                      COLUMNS=["api_key"],
+                                                      WHERE=[{'init': {'user_id': checked_user_id}}],
+                                                      OPERATOR="eq")[0]['api_key']
 
                             response = make_response(jsonify({"redir-url": "/account/analyse",
                                                               "message": "You are being redirected now."}), 200)
@@ -90,6 +93,8 @@ def action_user_login():
                                                 str(checked_user['name_surname']), max_age=60 * 60 * 24)
                             response.set_cookie('seohelper_usermail',
                                                 str(checked_user['email']), max_age=60 * 60 * 24)
+                            response.set_cookie('seohelper_userapikey',
+                                                str(api_key), max_age=60 * 60 * 24)
                             return response
                         else:
                             # invalid password
@@ -539,17 +544,17 @@ def api_test():
 
 @app.route('/sign-up', methods=['GET'])
 def signup():
-    return render_template("sign-up.html")
+    return render_template("sign-up.html", Auth_Key=env.AUTH_KEY)
 
 
 @app.route('/login', methods=['GET'])
 def login():
-    return render_template("login.html")
+    return render_template("login.html", Auth_Key=env.AUTH_KEY)
 
 
 @app.route('/', methods=['GET'])
 def index():
-    return render_template("index.html")
+    return render_template("index.html", Auth_Key=env.AUTH_KEY)
 
 
 @app.route('/logout', methods=['GET'])
@@ -561,6 +566,7 @@ def logout():
         res.set_cookie('seohelper_user_cookie', '', 0)
         res.set_cookie('seohelper_username', '', 0)
         res.set_cookie('seohelper_usermail', '', 0)
+        res.set_cookie('seohelper_userapikey', '', max_age=60 * 60 * 24)
         return res
     else:
         return redirect(url_for('login'))
@@ -570,10 +576,12 @@ def logout():
 def account_analyse():
     user_cookie = request.cookies.get('seohelper_user_cookie')
     user_name = request.cookies.get('seohelper_username')
-    if not user_cookie and not user_name:
+    user_api_key = request.cookies.get('seohelper_userapikey')
+    # TODO: This check is wrong dude.
+    if not user_cookie and not user_name and not user_api_key:
         return redirect(url_for('login'))
     else:
-        return render_template("account/analyse.html", username=user_name)
+        return render_template("account/analyse.html", username=user_name, api_key=user_api_key, Auth_Key=env.AUTH_KEY)
 
 
 if __name__ == '__main__':
