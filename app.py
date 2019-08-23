@@ -1,4 +1,4 @@
-from flask import Flask, request, Response, jsonify, make_response, render_template
+from flask import Flask, request, Response, jsonify, make_response, render_template, redirect, url_for
 from analysis import Analyser
 import bcrypt
 import traceback
@@ -25,6 +25,19 @@ def valid_auth(auth_key):
     if auth_key != env.AUTH_KEY:
         return False
     return True
+
+
+# Sensitive stuff, gonna be vague about var names here.
+def cookie_check(up, ui):
+    user_cookie = request.cookies.get('seohelper_user_cookie')
+    if not user_cookie:
+        return False
+    else:
+        if "&&" in user_cookie:
+            cookie_up, cookie_ui = user_cookie.split("&&", 1)
+            if up == cookie_up and ui == cookie_ui:
+                return True
+        return False
 
 
 def get_hashed_password(plain_text_password):
@@ -58,15 +71,26 @@ def action_user_login():
                     # Checking if the user already exits.
                     checked_user_id = db_obj.exists('user', [('email', email)])
                     if checked_user_id:  # It exists.
-                        checked_pass = db_obj.get_data("user",
-                                                       COLUMNS=["password"],
+                        checked_user = db_obj.get_data("user",
+                                                       COLUMNS=["name_surname", "password", "email"],
                                                        WHERE=[{'init': {'id': checked_user_id}}],
-                                                       OPERATOR="eq")[0]['password']
+                                                       OPERATOR="eq")[0]
+                        checked_pass = checked_user['password']
                         passcheck = check_password(password, checked_pass)
                         if passcheck:
                             # TODO: Password is correct, set the cookie var and redirect the user.
-                            return make_response(
-                                jsonify({"message": "Correct pass!"}), 200)
+
+                            response = make_response(jsonify({"redir-url": "/account/analyse",
+                                                              "message": "You are being redirected now."}), 200)
+
+                            response.set_cookie('seohelper_user_cookie', checked_pass + "&&" + str(checked_user_id),
+                                                max_age=60 * 60 * 24)  # Age is 1 day.
+
+                            response.set_cookie('seohelper_username',
+                                                str(checked_user['name_surname']), max_age=60 * 60 * 24)
+                            response.set_cookie('seohelper_usermail',
+                                                str(checked_user['email']), max_age=60 * 60 * 24)
+                            return response
                         else:
                             # invalid password
                             return make_response(jsonify(
@@ -526,6 +550,30 @@ def login():
 @app.route('/', methods=['GET'])
 def index():
     return render_template("index.html")
+
+
+@app.route('/logout', methods=['GET'])
+def logout():
+    user_cookie = request.cookies.get('seohelper_user_cookie')
+    if user_cookie:
+        # Cookie is existing, burn it.
+        res = make_response(redirect(url_for('login')))
+        res.set_cookie('seohelper_user_cookie', '', 0)
+        res.set_cookie('seohelper_username', '', 0)
+        res.set_cookie('seohelper_usermail', '', 0)
+        return res
+    else:
+        return redirect(url_for('login'))
+
+
+@app.route('/account/analyse', methods=['GET'])
+def account_analyse():
+    user_cookie = request.cookies.get('seohelper_user_cookie')
+    user_name = request.cookies.get('seohelper_username')
+    if not user_cookie and not user_name:
+        return redirect(url_for('login'))
+    else:
+        return render_template("account/analyse.html", username=user_name)
 
 
 if __name__ == '__main__':
