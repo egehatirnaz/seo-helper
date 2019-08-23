@@ -9,6 +9,14 @@ import env
 import secrets
 
 app = Flask(__name__)
+
+# TODO: You MUST remove these when not in dev environment.
+app.config['ENV'] = 'development'
+app.config['TESTING'] = True
+app.config['DEBUG'] = True
+app.config['TEMPLATES_AUTO_RELOAD'] = True
+app.config['TRAP_BAD_REQUEST_ERRORS'] = True
+
 mysql_obj = dbMysql.DbMysql(env.DB_HOST, env.DB_PORT, env.DB_USERNAME, env.DB_PASSWORD, env.DB_DATABASE)
 db_obj = dbClass.DbWrapper(mysql_obj)
 
@@ -21,12 +29,61 @@ def valid_auth(auth_key):
 
 def get_hashed_password(plain_text_password):
     # Hash a password for the first time
-    return bcrypt.hashpw(plain_text_password.encode('utf-8'), bcrypt.gensalt(12))
+    return bcrypt.hashpw(str(plain_text_password).encode('utf-8'), bcrypt.gensalt(12))
 
 
 def check_password(plain_text_password, hashed_password):
     # Check hashed password. Using bcrypt, the salt is saved into the hash itself
-    return bcrypt.checkpw(plain_text_password.encode('utf-8'), hashed_password)
+    return bcrypt.checkpw(str(plain_text_password).encode('utf-8'), hashed_password.encode('utf-8'))
+
+
+@app.route('/api/login', methods=['POST'])
+def action_user_login():
+    if 'Auth-Key' in request.headers:
+        auth_key = request.headers['Auth-Key']
+        if valid_auth(auth_key):  # Valid Auth Key, proceed as usual.
+            if request.method == 'POST':
+
+                # JSON control.
+                if not check_json(request):
+                    return make_response(jsonify(
+                        {"message": "Request body must be JSON."}), 400)
+                # Creating a user with given values.
+                json_data = request.get_json()
+                if 'email' in json_data and 'password' in json_data:
+                    password = json_data['password']
+                    email = json_data['email']
+
+                    # TODO: Instead of 2 queries, make one single query.
+                    # Checking if the user already exits.
+                    checked_user_id = db_obj.exists('user', [('email', email)])
+                    if checked_user_id:  # It exists.
+                        checked_pass = db_obj.get_data("user",
+                                                       COLUMNS=["password"],
+                                                       WHERE=[{'init': {'id': checked_user_id}}],
+                                                       OPERATOR="eq")[0]['password']
+                        passcheck = check_password(password, checked_pass)
+                        if passcheck:
+                            # TODO: Password is correct, set the cookie var and redirect the user.
+                            return make_response(
+                                jsonify({"message": "Correct pass!"}), 200)
+                        else:
+                            # invalid password
+                            return make_response(jsonify(
+                                {
+                                    "message": "Invalid password."}
+                            ), 200)
+                    else:
+                        return make_response(jsonify(
+                            {"message": "No user with given e-mail address."}), 200)
+                else:
+                    print(json_data)
+                    return make_response(jsonify(
+                        {"message": "Invalid parameters."}), 400)
+
+            else:
+                return Response(status=405)
+    return Response(status=401)
 
 
 @app.route('/api/user', methods=['POST', 'GET'])
@@ -38,8 +95,8 @@ def action_user():
 
                 # JSON control.
                 if not check_json(request):
-                    return Response("Request body must be JSON.", status=400)
-
+                    return make_response(jsonify(
+                        {"message": "Request body must be JSON."}), 400)
                 # Creating a user with given values.
                 json_data = request.get_json()
                 if 'name_surname' in json_data and 'password' in json_data and 'email' in json_data:
@@ -47,48 +104,58 @@ def action_user():
                     password = get_hashed_password(json_data['password'])
                     email = json_data['email']
 
-                    try:
-                        db_obj.insert_data('user',
-                                           [(name_surname, password, email, time.time())],
-                                           COLUMNS=['name_surname', 'password', 'email', 'created_at'])
-                    except Exception as e:
-                        print(e)
-                        return Response("Action could not be performed. Query did not execute successfully.",
-                                        status=500)
-
-                    # Generating an API key assigned to the user id.
-                    api_key = ''.join(secrets.token_hex(20))
-                    userid = db_obj.get_last_insert_id()
-
-                    try:
-                        db_obj.insert_data('api_key',
-                                           [(userid, api_key, time.time())],
-                                           COLUMNS=['user_id', 'api_key', 'timestamp'])
-                    except Exception as e:
-                        print(e)
+                    # Checking if the user already exits.
+                    checked_user_id = db_obj.exists('user', [('email', email)])
+                    if checked_user_id:  # It exists.
+                        return make_response(jsonify(
+                            {"message": "There is already an existing user with this e-mail address."}), 200)
+                    else:
                         try:
-                            db_obj.execute("DELETE FROM user WHERE user.id = " + userid + " LIMIT 1;")
+                            db_obj.insert_data('user',
+                                               [(name_surname, password, email, time.time())],
+                                               COLUMNS=['name_surname', 'password', 'email', 'created_at'])
                         except Exception as e:
                             print(e)
-                            return Response("Action could not be performed. Query did not execute successfully.",
-                                            status=500)
-                        return Response("Action could not be performed. Query did not execute successfully.",
-                                        status=500)
+                            return make_response(jsonify(
+                                {"message": "Action could not be performed. Query did not execute successfully."}), 500)
 
-                    # Success!
-                    return make_response(jsonify({
-                        "message": "User is generated successfully!",
-                        "User ID": userid,
-                        "API Key:": api_key}), 200)
+                        # Generating an API key assigned to the user id.
+                        api_key = ''.join(secrets.token_hex(20))
+                        userid = db_obj.get_last_insert_id()
+
+                        try:
+                            db_obj.insert_data('api_key',
+                                               [(userid, api_key, time.time())],
+                                               COLUMNS=['user_id', 'api_key', 'timestamp'])
+                        except Exception as e:
+                            print(e)
+                            try:
+                                db_obj.execute("DELETE FROM user WHERE user.id = " + userid + " LIMIT 1;")
+                            except Exception as e:
+                                print(e)
+                                return make_response(jsonify(
+                                    {"message": "Action could not be performed. Query did not execute successfully."}),
+                                    500)
+                            return make_response(jsonify(
+                                {"message": "Action could not be performed. Query did not execute successfully."}), 500)
+
+                        # Success!
+                        return make_response(jsonify({
+                            "message": "User is generated successfully!",
+                            "User ID": userid,
+                            "API Key:": api_key}), 200)
                 else:
-                    return Response("Invalid parameters.", status=400)
+                    print(json_data)
+                    return make_response(jsonify(
+                        {"message": "Invalid parameters."}), 400)
 
             elif request.method == 'GET':
                 try:
                     userdata = db_obj.execute("SELECT * FROM user")
                 except Exception as e:
                     print(e)
-                    return Response("Action could not be performed. Query did not execute successfully.", status=500)
+                    return make_response(jsonify(
+                        {"message": "Action could not be performed. Query did not execute successfully."}), 500)
                 return make_response(jsonify(userdata), 200)
             else:
                 return Response(status=405)
@@ -106,8 +173,8 @@ def action_get_seo_error(error_id):
                         error_detail = db_obj.execute("SELECT * FROM seo_errors WHERE id = '" + str(error_id) + "';")
                     except Exception as e:
                         print(e)
-                        return Response("Action could not be performed. Query did not execute successfully.",
-                                        status=500)
+                        return make_response(jsonify(
+                            {"message": "Action could not be performed. Query did not execute successfully."}), 500)
                     if len(error_detail) > 0:
                         return make_response(jsonify(error_detail), 200)
                     else:
@@ -130,7 +197,8 @@ def action_seo_errors():
 
                 # JSON control.
                 if not check_json(request):
-                    return Response("Request body must be JSON.", status=400)
+                    return make_response(jsonify(
+                        {"message": "Request body must be JSON."}), 400)
 
                 # Creating a new SEO error with given name, description and error-condition.
                 json_data = request.get_json()
@@ -146,18 +214,20 @@ def action_seo_errors():
                         message = "A new error has been added successfully!"
                     except Exception as e:
                         print(e)
-                        return Response("Action could not be performed. Query did not execute successfully.",
-                                        status=500)
+                        return make_response(jsonify(
+                            {"message": "Action could not be performed. Query did not execute successfully."}), 500)
                     return make_response(message, 200)
                 else:
-                    return Response("Invalid parameters.", status=400)
+                    return make_response(jsonify(
+                        {"message": "Invalid parameters."}), 400)
 
             # PUT
             elif request.method == 'PUT':
 
                 # JSON control.
                 if not check_json(request):
-                    return Response("Request body must be JSON.", status=400)
+                    return make_response(jsonify(
+                        {"message": "Request body must be JSON."}), 400)
 
                 json_data = request.get_json()
                 if 'id' in json_data and 'data' in json_data:
@@ -169,10 +239,11 @@ def action_seo_errors():
                         message = "Error with id #" + str(row_id) + " is updated successfully!"
                     except Exception as e:
                         print(traceback.format_exc() + "\n" + e)
-                        return Response("Action could not be performed. Query did not execute successfully.",
-                                        status=500)
+                        return make_response(jsonify(
+                            {"message": "Action could not be performed. Query did not execute successfully."}), 500)
                     return make_response(message, 200)
-                return Response("Invalid parameters.", status=400)
+                return make_response(jsonify(
+                    {"message": "Invalid parameters."}), 400)
 
             # GET
             elif request.method == 'GET':
@@ -180,7 +251,8 @@ def action_seo_errors():
                     error_detail = db_obj.execute("SELECT * FROM seo_errors")
                 except Exception as e:
                     print(e)
-                    return Response("Action could not be performed. Query did not execute successfully.", status=500)
+                    return make_response(jsonify(
+                        {"message": "Action could not be performed. Query did not execute successfully."}), 500)
 
                 if len(error_detail) > 0:
                     return make_response(jsonify(error_detail), 200)
@@ -204,8 +276,8 @@ def action_get_analysed_url(url_id):
                         url_detail = db_obj.execute("SELECT * FROM analysed_url WHERE id = '" + str(url_id) + "';")
                     except Exception as e:
                         print(e)
-                        return Response("Action could not be performed. Query did not execute successfully.",
-                                        status=500)
+                        return make_response(jsonify(
+                            {"message": "Action could not be performed. Query did not execute successfully."}), 500)
                     if len(url_detail) > 0:
                         return make_response(jsonify(url_detail), 200)
                     else:
@@ -225,7 +297,8 @@ def action_analysed_url():
 
             # JSON control.
             if not check_json(request):
-                return Response("Request body must be JSON.", status=400)
+                return make_response(jsonify(
+                    {"message": "Request body must be JSON."}), 400)
 
             # POST
             if request.method == 'POST':
@@ -242,11 +315,12 @@ def action_analysed_url():
                         message = "A new URL has been added successfully!"
                     except Exception as e:
                         print(e)
-                        return Response("Action could not be performed. Query did not execute successfully.",
-                                        status=500)
+                        return make_response(jsonify(
+                            {"message": "Action could not be performed. Query did not execute successfully."}), 500)
                     return make_response(message, 200)
                 else:
-                    return Response("Invalid parameters.", status=400)
+                    return make_response(jsonify(
+                        {"message": "Invalid parameters."}), 400)
 
             # GET
             elif request.method == 'GET':
@@ -254,7 +328,8 @@ def action_analysed_url():
                     analysis_detail = db_obj.execute("SELECT * FROM analysed_url")
                 except Exception as e:
                     print(e)
-                    return Response("Action could not be performed. Query did not execute successfully.", status=500)
+                    return make_response(jsonify(
+                        {"message": "Action could not be performed. Query did not execute successfully."}), 500)
 
                 if len(analysis_detail) > 0:
                     return make_response(jsonify(analysis_detail), 200)
@@ -283,8 +358,8 @@ def action_get_analysis_errors(url_id):
                             WHERE url_id = '""" + str(url_id) + "';")
                     except Exception as e:
                         print(e)
-                        return Response("Action could not be performed. Query did not execute successfully.",
-                                        status=500)
+                        return make_response(jsonify(
+                            {"message": "Action could not be performed. Query did not execute successfully."}), 500)
                     if len(url_detail) > 0:
                         return make_response(jsonify(url_detail), 200)
                     else:
@@ -304,7 +379,8 @@ def action_analysis_errors():
 
             # JSON control.
             if not check_json(request):
-                return Response("Request body must be JSON.", status=400)
+                return make_response(jsonify(
+                    {"message": "Request body must be JSON."}), 400)
 
             # POST
             if request.method == 'POST':
@@ -321,11 +397,12 @@ def action_analysis_errors():
                         message = "A new URL & error match has been added successfully!"
                     except Exception as e:
                         print(e)
-                        return Response("Action could not be performed. Query did not execute successfully.",
-                                        status=500)
+                        return make_response(jsonify(
+                            {"message": "Action could not be performed. Query did not execute successfully."}), 500)
                     return make_response(message, 200)
                 else:
-                    return Response("Invalid parameters.", status=400)
+                    return make_response(jsonify(
+                        {"message": "Invalid parameters."}), 400)
 
             # GET
             elif request.method == 'GET':
@@ -337,12 +414,14 @@ def action_analysis_errors():
                             JOIN seo_errors ON analysis_errors.error_id=seo_errors.id;""")
                 except Exception as e:
                     print(e)
-                    return Response("Action could not be performed. Query did not execute successfully.", status=500)
+                    return make_response(jsonify(
+                        {"message": "Action could not be performed. Query did not execute successfully."}), 500)
 
                 if len(all_records) > 0:
                     return make_response(jsonify(all_records), 200)
                 else:
-                    return Response("No record found for this error ID.", status=404)
+                    return make_response(jsonify(
+                        {"message": "No record found for this error ID."}), 404)
 
             # 405
             else:
@@ -354,7 +433,8 @@ def action_analysis_errors():
 def request_analysis():
     # JSON control.
     if not check_json(request):
-        return Response("Request body must be JSON.", status=400)
+        return make_response(jsonify(
+            {"message": "Request body must be JSON."}), 400)
 
     # POST
     if request.method == 'POST':
@@ -368,7 +448,8 @@ def request_analysis():
             message = result[1]
             return make_response(message, 200)
         else:
-            return Response("Invalid parameters.", status=400)
+            return make_response(jsonify(
+                {"message": "Invalid parameters."}), 400)
     # 405
     else:
         return Response(status=405)
@@ -378,7 +459,8 @@ def request_analysis():
 def request_analysis_batch():
     # JSON control.
     if not check_json(request):
-        return Response("Request body must be JSON.", status=400)
+        return make_response(jsonify(
+            {"message": "Request body must be JSON."}), 400)
 
     # POST
     if request.method == 'POST':
@@ -392,7 +474,8 @@ def request_analysis_batch():
             message = result[1]
             return make_response(message, 200)
         else:
-            return Response("Invalid parameters.", status=400)
+            return make_response(jsonify(
+                {"message": "Invalid parameters."}), 400)
     # 405
     else:
         return Response(status=405)
@@ -421,8 +504,8 @@ def check_json(in_request):
         return False
 
 
-@app.route('/', methods=['POST', 'GET'])
-def index():
+@app.route('/api', methods=['POST', 'GET'])
+def api_test():
     if 'Auth-Key' in request.headers:
         auth_key = request.headers['Auth-Key']
         if valid_auth(auth_key):  # Valid Auth Key, proceed as usual.
@@ -433,6 +516,16 @@ def index():
 @app.route('/sign-up', methods=['GET'])
 def signup():
     return render_template("sign-up.html")
+
+
+@app.route('/login', methods=['GET'])
+def login():
+    return render_template("login.html")
+
+
+@app.route('/', methods=['GET'])
+def index():
+    return render_template("index.html")
 
 
 if __name__ == '__main__':
