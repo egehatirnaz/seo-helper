@@ -533,6 +533,11 @@ def test_analysis():
     return render_template("test_html.html")
 
 
+@app.route('/test-301', methods=['GET'])
+def test_301():
+    return redirect(url_for('test_analysis'), 301)
+
+
 def check_json(in_request):
     if in_request.is_json:
         return True

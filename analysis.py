@@ -63,7 +63,6 @@ class Analyser:
                                                                exclude=('url_id', url_id))
                                 if dup_check is not False:
                                     url_error_list.append(True)  # Duplicate!
-                                    # print(error['value'], "is duplicate!")
                                 else:
                                     url_error_list.append(False)  # Not duplicate!
                             else:
@@ -143,8 +142,6 @@ class Analyser:
                                       'content': url_meta_content})
 
         result = list(zip(list(x['id'] for x in defined_errors), url_error_list))
-        print(url_meta_list)
-        print(result)
         return result, url_meta_list
 
     def analyse(self, url, user_data):
@@ -158,6 +155,9 @@ class Analyser:
         website_data = self.crawler.get_crawled(url)
         if website_data['status_code'] != 200:
             return None, "Non-OK HTTP response received!"
+
+        # Handle the URL changes for 301, 302, etc.
+        url = website_data['url']
 
         # Obtain crawl data for website.
         crawl = website_data['content']
@@ -254,13 +254,6 @@ class Analyser:
                 print(e)
                 return None, "Action could not be performed. Query did not execute successfully."
 
-            try:
-                # Update the crawled website info.
-                print(1)
-            except Exception as e:
-                print(e)
-                return None, "Action could not be performed. Query did not execute successfully."
-
         # User's analysis was successful.
         try:
             self.db_obj.insert_data('analysis_user',
@@ -329,10 +322,7 @@ class Analyser:
         print(self.request_analysis(["http://127.0.0.1:5000/test-analysis"],
                                     "7882e9e22bfa7dc96a6e8333a66091c51d5fe012",
                                     "batch"))
-        """
-        user_data = {"user_id": 9, "name": "Ege Hatırnaz"}
-        self.analyse("http://127.0.0.1:5000/test-analysis", user_data)
-        """
+
 
 if __name__ == '__main__':
     a = Analyser()

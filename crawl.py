@@ -11,7 +11,7 @@ class Crawler:
             source = None
             if status_code == 200:
                 source = BeautifulSoup(r.content, "html5lib")
-            return {'status_code': status_code, 'content': source}
+            return {'status_code': status_code, 'url': r.url, 'content': source}
         except Exception as e:
             print(e)
             return None
@@ -55,8 +55,8 @@ class Crawler:
             }
 
     def main(self):
-        print(self.get_crawled("https://www.jasflkjaslfkjaslfkjasfklkasşkfas.com"))
-        print(self.get_crawled("https://www.jotform.com/blog"))
+        # print(self.get_crawled("https://www.jasflkjaslfkjaslfkjasfklkasşkfas.com"))
+        print(self.get_crawled("http://127.0.0.1:5000/test-301"))
 
 
 if __name__ == '__main__':
