@@ -1,5 +1,6 @@
 from crawl import Crawler
 from notifier.notifier import Notifier
+import tldextract
 import dbMysql
 import dbClass
 import env
@@ -34,6 +35,118 @@ class Analyser:
         else:
             return False
 
+    def find_errors(self, defined_errors, crawl_data, url_id):
+        url_error_list = []
+        url_meta_list = []
+        # Scan the metadata according to defined errors.
+        for error in defined_errors:
+            url_meta_content = None
+            if error['attribute']:  # Compound metadata
+                found_tag = crawl_data.find(error['tag'], attrs={error['attribute']: error['value']})
+
+                # Are we checking for missing attribs?
+                missing_mode = True if error['content'] is None else False
+
+                if found_tag:
+                    if found_tag['content']:
+                        found_tag_content = found_tag['content']
+                        if found_tag_content != "":  # Yeah it exists, but is it an empty string?
+                            url_meta_content = found_tag_content
+                            # Now we can check if we're analysing duplicates.
+                            if not missing_mode:
+                                # Check for duplicates.
+                                dup_check = self.db_obj.exists('analysed_url_meta',
+                                                               [('tag', error['tag']),
+                                                                ('attribute', error['attribute']),
+                                                                ('value', error['value']),
+                                                                ('content', found_tag_content)],
+                                                               exclude=('url_id', url_id))
+                                if dup_check is not False:
+                                    url_error_list.append(True)  # Duplicate!
+                                    # print(error['value'], "is duplicate!")
+                                else:
+                                    url_error_list.append(False)  # Not duplicate!
+                            else:
+                                # Check for missing. But it is already non-empty.
+                                url_error_list.append(False)
+                        else:
+                            # Tag content is empty.
+                            if missing_mode:
+                                # Check for missing. It is indeed empty.
+                                url_error_list.append(True)
+                            else:
+                                # It is missing but we are checking for duplicates right now.
+                                url_error_list.append(False)
+                    else:
+                        if missing_mode:
+                            # The tag is missing. Put it in the errors.
+                            url_error_list.append(True)
+                        else:
+                            # It is missing but we are checking for duplicates right now.
+                            url_error_list.append(False)
+                else:
+                    # Tag is missing.
+                    if missing_mode:
+                        # The tag is missing. Put it in the errors.
+                        url_error_list.append(True)
+                    else:
+                        # It is missing but we are checking for duplicates right now.
+                        url_error_list.append(False)
+            else:  # Simple tag checking
+                found_tag = crawl_data.find(error['tag'])
+
+                # Are we checking for missing attribs?
+                missing_mode = True if error['content'] is None else False
+
+                if found_tag:  # No need for checking duplication if it's already missing.
+                    if found_tag.text:
+                        found_tag_content = found_tag.text
+                        url_meta_content = found_tag_content
+                        # Now we can check if we're analysing duplicates.
+                        if not missing_mode:
+                            # Check for duplicates.
+                            dup_check = self.db_obj.exists('analysed_url_meta', [('tag', error['tag']),
+                                                                                 ('attribute', error['attribute']),
+                                                                                 ('value', error['value']),
+                                                                                 ('content', found_tag_content)],
+                                                           exclude=('url_id', url_id))
+                            # Warn if the error did not exist before or notify if the error is fixed this time.
+                            if dup_check is not False:
+                                # Duplicate!
+                                url_error_list.append(True)
+                            else:
+                                # Not duplicate!
+                                url_error_list.append(False)
+                        else:
+                            url_error_list.append(False)
+                    else:
+                        # Empty tag body?
+                        if missing_mode:
+                            # Check for missing. It is indeed empty.
+                            url_error_list.append(True)
+                        else:
+                            # It is missing but we are checking for duplicates right now.
+                            url_error_list.append(False)
+                else:
+                    # Tag is missing.
+                    if missing_mode:
+                        # The tag is missing. Put it in the errors.
+                        url_error_list.append(True)
+                    else:
+                        # It is missing but we are checking for duplicates right now.
+                        url_error_list.append(False)
+            # Get the single metadata
+            if error['content'] is not None:  # TODO: This shit needs to be addressed. There must be a better solution.
+                url_meta_list.append({'tag': error['tag'],
+                                      'attribute': error['attribute'],
+                                      'value': error['value'],
+                                      'content': url_meta_content})
+
+        result = list(zip(list(x['id'] for x in defined_errors), url_error_list))
+        print(url_meta_list)
+        print(result)
+        return result, url_meta_list
+
     def analyse(self, url, user_data):
         if user_data is not False:
             user_id = user_data['user_id']
@@ -42,19 +155,19 @@ class Analyser:
             return None, "Unauthorised!"
 
         # Proceed for website crawling.
-        website_data = self.crawler.process_website(url)
+        website_data = self.crawler.get_crawled(url)
         if website_data['status_code'] != 200:
             return None, "Non-OK HTTP response received!"
 
-        meta_title = website_data['meta_title']
-        meta_desc = website_data['meta_desc']
-        h1 = website_data['h1']
-        h2 = website_data['h2']
+        # Obtain crawl data for website.
+        crawl = website_data['content']
 
         # Add to analysed_url table of our database with the correct timestamp.
         checked_id = self.db_obj.exists('analysed_url', [('url', url)])
-        if checked_id:  # It exists. Reset the error percentage for further analysis and update the time accessed to it.
+        if checked_id:  # It exists. Update the time accessed to it.
             url_id = checked_id
+
+            # Update the time of this url.
             try:
                 self.db_obj.update_data('analysed_url',
                                         [('time_accessed', time.time())],
@@ -63,224 +176,87 @@ class Analyser:
                 print(e)
                 return None, "Action could not be performed. Query did not execute successfully."
 
-            # Check for missing attributes. If problems are not noted before, add them.
-            # Remove any problems that are solved.
+            # Get ALL defined SEO Errors. (So that you can check it during analysis.)
+            defined_errors = self.db_obj.execute("SELECT * FROM seo_errors")
 
-            # Get the problems related to that url id.
-            url_errors = [row['error_id'] for row in
-                          self.db_obj.execute(
-                              "SELECT error_id FROM analysis_errors WHERE url_id = " + str(checked_id))]
+            # Get the found error list of this URL.
+            errors = self.find_errors(defined_errors, crawl, url_id)
+            error_list = errors[0]
+            meta_list = errors[1]
 
-            # Title
-            if meta_title is None and 2 not in url_errors:
-                print("Title is missing and this was not noted before!")
-                self.db_obj.insert_data('analysis_errors',
-                                        [(checked_id, 2)],
-                                        COLUMNS=['url_id', 'error_id'])
-            elif meta_title is not None and 2 in url_errors:
-                print("Title was missing but it seems to be fixed now.")
-                try:
+            # Get the previously existing problems related to that url id.
+            previous_url_errors = [row['error_id'] for row in
+                                   self.db_obj.execute(
+                                       "SELECT error_id FROM analysis_errors WHERE url_id = " + str(checked_id))]
+
+            # Clear out the existing metadata. (I'm not content with this solution. I should've left the unchanged data)
+            self.db_obj.execute("DELETE FROM analysed_url_meta WHERE url_id = " + str(url_id))
+
+            # Add the meta data to DB.
+            for meta in meta_list:
+                self.db_obj.insert_data('analysed_url_meta',
+                                        [(url_id, meta['tag'], meta['attribute'], meta['value'], meta['content'])],
+                                        COLUMNS=['url_id', 'tag', 'attribute', 'value', 'content'])
+
+            # Iterate the error list
+            for error in error_list:
+                if error[0] in previous_url_errors and error[1] is False:
+                    # Delete the fixed errors.
+                    print("Error with id ", error[0], " is fixed now!")
                     self.db_obj.execute(
                         "DELETE FROM analysis_errors "
-                        "WHERE url_id = {0} AND error_id = {1} LIMIT 1".format(checked_id, 2))
-                except Exception as e:
-                    print(e)
-
-            # Meta Desc
-            if meta_desc is None and 1 not in url_errors:
-                print("Desc is missing and this was not noted before!")
-                self.db_obj.insert_data('analysis_errors',
-                                        [(checked_id, 1)],
-                                        COLUMNS=['url_id', 'error_id'])
-            elif meta_desc is not None and 1 in url_errors:
-                print("Desc was missing but it seems to be fixed now.")
-                try:
-                    self.db_obj.execute(
-                        "DELETE FROM analysis_errors "
-                        "WHERE url_id = {0} AND error_id = {1} LIMIT 1".format(checked_id, 1))
-                except Exception as e:
-                    print(e)
-
-            # H1
-            if h1 is None and 3 not in url_errors:
-                print("H1 is missing and this was not noted before!")
-                try:
+                        "WHERE url_id = {0} AND error_id = {1} LIMIT 1".format(checked_id, error[0]))
+                elif error[0] not in previous_url_errors and error[1] is True:
+                    # Add the previously non-existing errors.
+                    print("A wild error with id ", error[0], " has just appeared!")  # Pokemon?
                     self.db_obj.insert_data('analysis_errors',
-                                            [(checked_id, 3)],
+                                            [(url_id, error[0])],
                                             COLUMNS=['url_id', 'error_id'])
-                except Exception as e:
-                    print(e)
-            elif h1 is not None and 3 in url_errors:
-                print("H1 was missing but it seems to be fixed now.")
-                try:
-                    self.db_obj.execute(
-                        "DELETE FROM analysis_errors "
-                        "WHERE url_id = {0} AND error_id = {1} LIMIT 1".format(checked_id, 3))
-                except Exception as e:
-                    print(e)
-
-            # H2
-            if h2 is None and 4 not in url_errors:
-                print("H2 is missing and this was not noted before!")
-                self.db_obj.insert_data('analysis_errors',
-                                        [(checked_id, 4)],
-                                        COLUMNS=['url_id', 'error_id'])
-            elif h2 is not None and 4 in url_errors:
-                print("H2 was missing but it seems to be fixed now.")
-                self.db_obj.execute(
-                    "DELETE FROM analysis_errors "
-                    "WHERE url_id = {0} AND error_id = {1} LIMIT 1".format(checked_id, 4))
-
-            # Checking for duplicate meta data. Empty data doesn't count as a duplicate.
-            dup_title = False if meta_title is None \
-                else self.db_obj.exists('analysed_url', [('meta_title', meta_title)], exclude=('id', checked_id))
-
-            dup_desc = False if meta_desc is None \
-                else self.db_obj.exists('analysed_url', [('meta_desc', meta_desc)], exclude=('id', checked_id))
-
-            dup_h1 = False if h1 is None \
-                else self.db_obj.exists('analysed_url', [('h1', h1)], exclude=('id', checked_id))
-
-            dup_h2 = False if h2 is None \
-                else self.db_obj.exists('analysed_url', [('h2', h2)], exclude=('id', checked_id))
-
-            # Warn if the error did not exist before or notify if the error is fixed this time.
-
-            # Title
-            if dup_title is not False and 5 not in url_errors:
-                print("Title is duplicate and this was not noted before!")
-                self.db_obj.insert_data('analysis_errors',
-                                        [(checked_id, 5)],
-                                        COLUMNS=['url_id', 'error_id'])
-            elif dup_title is False and 5 in url_errors:
-                print("Title was duplicate but it seems to be fixed now.")
-                self.db_obj.execute(
-                    "DELETE FROM analysis_errors "
-                    "WHERE url_id = {0} AND error_id = {1} LIMIT 1".format(checked_id, 5))
-
-            # Desc
-            if dup_desc is not False and 6 not in url_errors:
-                print("Desc is duplicate and this was not noted before!")
-                self.db_obj.insert_data('analysis_errors',
-                                        [(checked_id, 6)],
-                                        COLUMNS=['url_id', 'error_id'])
-            elif dup_desc is False and 6 in url_errors:
-                print("Desc was duplicate but it seems to be fixed now.")
-                self.db_obj.execute(
-                    "DELETE FROM analysis_errors "
-                    "WHERE url_id = {0} AND error_id = {1} LIMIT 1".format(checked_id, 6))
-
-            # H1
-            if dup_h1 is not False and 7 not in url_errors:
-                print("H1 is duplicate and this was not noted before!")
-                self.db_obj.insert_data('analysis_errors',
-                                        [(checked_id, 7)],
-                                        COLUMNS=['url_id', 'error_id'])
-            elif dup_h1 is False and 7 in url_errors:
-                print("H1 was duplicate but it seems to be fixed now.")
-                self.db_obj.execute(
-                    "DELETE FROM analysis_errors "
-                    "WHERE url_id = {0} AND error_id = {1} LIMIT 1".format(checked_id, 7))
-
-            # H2
-            if dup_h2 is not False and 8 not in url_errors:
-                print("H2 is duplicate and this was not noted before!")
-                self.db_obj.insert_data('analysis_errors',
-                                        [(checked_id, 8)],
-                                        COLUMNS=['url_id', 'error_id'])
-            elif dup_h2 is False and 8 in url_errors:
-                print("H2 was duplicate but it seems to be fixed now.")
-                self.db_obj.execute(
-                    "DELETE FROM analysis_errors "
-                    "WHERE url_id = {0} AND error_id = {1} LIMIT 1".format(checked_id, 8))
-
-            # Update the crawled website info.
-            self.db_obj.update_data('analysed_url', [
-                ('meta_title', meta_title),
-                ('meta_desc', meta_desc),
-                ('h1', h1),
-                ('h2', h2)
-            ], checked_id)
 
         else:  # A unique record.
             try:
+                # Find the sub-domain and domain of URL.
+                extracted_url = tldextract.extract(url)
+                subdomain = extracted_url.subdomain
+                domain = extracted_url.domain
+
+                # Add the new site to analysed_url.
                 self.db_obj.insert_data('analysed_url',
-                                        [(url, time.time(), meta_title, meta_desc, h1, h2)],
-                                        COLUMNS=['url', 'time_accessed', 'meta_title', 'meta_desc', 'h1', 'h2'])
+                                        [(url, subdomain, domain, time.time())],
+                                        COLUMNS=['url', 'subdomain', 'domain', 'time_accessed'])
                 insert_id = self.db_obj.get_last_insert_id()
                 url_id = insert_id
 
-                # Check for missing attributes.
-                if meta_title is None:
-                    print("Title is not found!")
-                    self.db_obj.insert_data('analysis_errors',
-                                            [(insert_id, 2)],
-                                            COLUMNS=['url_id', 'error_id'])
+                # Get ALL defined SEO Errors. (So that you can check it during analysis.)
+                defined_errors = self.db_obj.execute("SELECT * FROM seo_errors")
 
-                if meta_desc is None:
-                    print("Meta Desc is not found!")
-                    self.db_obj.insert_data('analysis_errors',
-                                            [(insert_id, 1)],
-                                            COLUMNS=['url_id', 'error_id'])
+                # Get the found error list of this URL.
+                errors = self.find_errors(defined_errors, crawl, url_id)
+                error_list = errors[0]
+                meta_list = errors[1]
 
-                if h1 is None:
-                    print("H1 is not found!")
-                    self.db_obj.insert_data('analysis_errors',
-                                            [(insert_id, 3)],
-                                            COLUMNS=['url_id', 'error_id'])
+                # Add the meta data to DB.
+                for meta in meta_list:
+                    self.db_obj.insert_data('analysed_url_meta',
+                                            [(url_id, meta['tag'], meta['attribute'], meta['value'], meta['content'])],
+                                            COLUMNS=['url_id', 'tag', 'attribute', 'value', 'content'])
 
-                if h2 is None:
-                    print("H2 is not found!")
-                    self.db_obj.insert_data('analysis_errors',
-                                            [(insert_id, 4)],
-                                            COLUMNS=['url_id', 'error_id'])
+                # Iterate the error list
+                for error in error_list:
+                    if error[1] is True:
+                        # Add the newly found error.
+                        print("A wild error with id ", error[0], " has just appeared!")  # Pokemon?
+                        self.db_obj.insert_data('analysis_errors',
+                                                [(url_id, error[0])],
+                                                COLUMNS=['url_id', 'error_id'])
 
-                # Checking for duplicate meta data. Empty data doesn't count as duplicate.
-                dup_title = False if meta_title is None \
-                    else self.db_obj.exists('analysed_url', [('meta_title', meta_title)], exclude=('id', insert_id))
-
-                dup_desc = False if meta_desc is None \
-                    else self.db_obj.exists('analysed_url', [('meta_desc', meta_desc)], exclude=('id', insert_id))
-
-                dup_h1 = False if h1 is None \
-                    else self.db_obj.exists('analysed_url', [('h1', h1)], exclude=('id', insert_id))
-
-                dup_h2 = False if h2 is None \
-                    else self.db_obj.exists('analysed_url', [('h2', h2)], exclude=('id', insert_id))
-
-                # Warn if the error did not exist before or notify if the error is fixed this time.
-                if dup_title is not False:
-                    print("Title is duplicate!")
-                    self.db_obj.insert_data('analysis_errors',
-                                            [(insert_id, 5)],
-                                            COLUMNS=['url_id', 'error_id'])
-                if dup_desc is not False:
-                    print("Desc is duplicate!")
-                    self.db_obj.insert_data('analysis_errors',
-                                            [(insert_id, 6)],
-                                            COLUMNS=['url_id', 'error_id'])
-                if dup_h1 is not False:
-                    print("H1 is duplicate!")
-                    self.db_obj.insert_data('analysis_errors',
-                                            [(insert_id, 7)],
-                                            COLUMNS=['url_id', 'error_id'])
-                if dup_h2 is not False:
-                    print("H2 is duplicate!")
-                    self.db_obj.insert_data('analysis_errors',
-                                            [(insert_id, 8)],
-                                            COLUMNS=['url_id', 'error_id'])
             except Exception as e:
                 print(e)
                 return None, "Action could not be performed. Query did not execute successfully."
 
             try:
                 # Update the crawled website info.
-                self.db_obj.update_data('analysed_url', [
-                    ('meta_title', meta_title),
-                    ('meta_desc', meta_desc),
-                    ('h1', h1),
-                    ('h2', h2)
-                ], checked_id)
+                print(1)
             except Exception as e:
                 print(e)
                 return None, "Action could not be performed. Query did not execute successfully."
@@ -350,10 +326,13 @@ class Analyser:
         return result, "Success!"
 
     def main(self):
-        print(self.request_analysis("http://127.0.0.1:5000/test-analysis",
+        print(self.request_analysis(["http://127.0.0.1:5000/test-analysis"],
                                     "7882e9e22bfa7dc96a6e8333a66091c51d5fe012",
                                     "batch"))
-
+        """
+        user_data = {"user_id": 9, "name": "Ege Hatırnaz"}
+        self.analyse("http://127.0.0.1:5000/test-analysis", user_data)
+        """
 
 if __name__ == '__main__':
     a = Analyser()

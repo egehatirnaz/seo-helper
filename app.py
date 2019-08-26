@@ -1,5 +1,6 @@
 from flask import Flask, request, Response, jsonify, make_response, render_template, redirect, url_for
 from analysis import Analyser
+import tldextract
 import bcrypt
 import traceback
 import time
@@ -231,15 +232,18 @@ def action_seo_errors():
 
                 # Creating a new SEO error with given name, description and error-condition.
                 json_data = request.get_json()
-                if 'name' in json_data and 'tag' in json_data and 'description' in json_data:
+                if 'name' in json_data and 'tag' in json_data:
+                    print(json_data)
                     name = json_data['name']
                     tag = json_data['tag']
-                    description = json_data['description']
-
+                    description = None if 'description' not in json_data else json_data['description']
+                    attribute = None if 'attribute' not in json_data else json_data['attribute']
+                    value = None if 'value' not in json_data else json_data['value']
+                    exit(1)
                     try:
                         db_obj.insert_data('seo_errors',
-                                           [(name, tag, description)],
-                                           COLUMNS=['name', 'tag', 'description'])
+                                           [(name, tag, description, attribute, value)],
+                                           COLUMNS=['name', 'tag', 'description', 'attribute', 'value'])
                         message = "A new error has been added successfully!"
                     except Exception as e:
                         print(e)
@@ -335,12 +339,15 @@ def action_analysed_url():
                 json_data = request.get_json()
                 if 'url' in json_data and 'time_accessed' in json_data:
                     url = json_data['url']
+                    extracted_url = tldextract.extract(url)
+                    subdomain = extracted_url.subdomain
+                    domain = extracted_url.domain
                     time_accessed = json_data['time_accessed']
 
                     try:
                         db_obj.insert_data('analysed_url',
-                                           [(url, time_accessed)],
-                                           COLUMNS=['url', 'time_accessed'])
+                                           [(url, subdomain, domain, time_accessed)],
+                                           COLUMNS=['url', 'subdomain', 'domain', 'time_accessed'])
                         message = "A new URL has been added successfully!"
                     except Exception as e:
                         print(e)

@@ -16,6 +16,7 @@ class Crawler:
             print(e)
             return None
 
+    # We shall not use this one.
     def process_website(self, source_url):
         response = self.get_crawled(source_url)
         status_code = response['status_code']
@@ -54,8 +55,8 @@ class Crawler:
             }
 
     def main(self):
-        print(self.process_website("https://www.jasflkjaslfkjaslfkjasfklkasşkfas.com"))
-        print(self.process_website("https://www.jotform.com/blog"))
+        print(self.get_crawled("https://www.jasflkjaslfkjaslfkjasfklkasşkfas.com"))
+        print(self.get_crawled("https://www.jotform.com/blog"))
 
 
 if __name__ == '__main__':
