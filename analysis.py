@@ -1,10 +1,12 @@
 from crawl import Crawler
 from notifier.notifier import Notifier
+from urllib.parse import urljoin
 import tldextract
 import dbMysql
 import dbClass
 import env
 import time
+import requests
 
 
 class Analyser:
@@ -35,12 +37,23 @@ class Analyser:
         else:
             return False
 
+    def find_broken_links(self, crawl_data, url):
+        href_list = [tag['href'] for tag in crawl_data.find_all('a', href=True)]
+        broken_links = []
+        for link in href_list:
+            absolute_href = urljoin(url, link)
+            r = requests.head(absolute_href)
+            if not r.ok:
+                broken_links.append(absolute_href)
+        return broken_links
+
     def find_errors(self, defined_errors, crawl_data, url_id):
         url_error_list = []
         url_meta_list = []
         # Scan the metadata according to defined errors.
         for error in defined_errors:
             url_meta_content = None
+
             if error['attribute']:  # Compound metadata
                 found_tag = crawl_data.find(error['tag'], attrs={error['attribute']: error['value']})
 
@@ -162,6 +175,9 @@ class Analyser:
         # Obtain crawl data for website.
         crawl = website_data['content']
 
+        # Check broken references in this website.
+        broken_links = self.find_broken_links(crawl, url)
+
         # Add to analysed_url table of our database with the correct timestamp.
         checked_id = self.db_obj.exists('analysed_url', [('url', url)])
         if checked_id:  # It exists. Update the time accessed to it.
@@ -254,6 +270,20 @@ class Analyser:
                 print(e)
                 return None, "Action could not be performed. Query did not execute successfully."
 
+        try:
+            # Clear out the existing broken links.
+            # (I'm not content with this solution. Maybe I should've left the unchanged data)
+            self.db_obj.execute("DELETE FROM analysed_url_href_404 WHERE url_id = " + str(url_id))
+
+            # Add the broken links to DB.
+            for link in broken_links:
+                self.db_obj.insert_data('analysed_url_href_404',
+                                        [(url_id, link)],
+                                        COLUMNS=['url_id', 'href'])
+        except Exception as e:
+            print(e)
+            return None, "Action could not be performed. Query did not execute successfully."
+
         # User's analysis was successful.
         try:
             self.db_obj.insert_data('analysis_user',
@@ -273,7 +303,9 @@ class Analyser:
                 error_array = []
                 for issue in issues:
                     error_array.append([issue['name'], issue['description']])
-
+                for link in broken_links:
+                    error_array.append(["Referencing Broken / Dead URL",
+                                        "The following referenced URL is returning a 4xx/5xx response: " + link])
                 # Fucking successful!
                 return {url: error_array}, "Success!"
 
