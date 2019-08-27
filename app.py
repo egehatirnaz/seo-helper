@@ -134,7 +134,7 @@ def action_user():
                     password = get_hashed_password(json_data['password'])
                     email = json_data['email']
 
-                    # Checking if the user already exits.
+                    # Checking if the user already exists.
                     checked_user_id = db_obj.exists('user', [('email', email)])
                     if checked_user_id:  # It exists.
                         return make_response(jsonify(
@@ -192,6 +192,39 @@ def action_user():
     return Response(status=401)
 
 
+@app.route('/api/user-history', methods=['POST'])
+def action_get_user_history():
+    if 'Auth-Key' in request.headers:
+        auth_key = request.headers['Auth-Key']
+        if valid_auth(auth_key):  # Valid Auth Key, proceed as usual.
+            # JSON control.
+            if not check_json(request):
+                return make_response(jsonify(
+                    {"message": "Request body must be JSON."}), 400)
+            json_data = request.get_json()
+            if 'api_key' in json_data:
+                api_key = json_data['api_key']
+                sql = "SELECT user_id FROM api_key WHERE api_key = '{0}';".format(api_key)
+                user_id = db_obj.execute(sql)[0]['user_id']
+
+                # Dankest sql bruh.
+                sql = """SELECT analysed_url.url,
+                    GROUP_CONCAT(seo_errors.name SEPARATOR '<br><br>') AS error_name,
+                    analysis_user.time
+                    FROM analysis_user 
+                    JOIN analysed_url ON analysis_user.url_id = analysed_url.id 
+                    JOIN analysis_errors ON analysis_errors.url_id = analysis_user.url_id
+                    JOIN seo_errors ON analysis_errors.error_id = seo_errors.id
+                    WHERE analysis_user.user_id = {0} GROUP BY analysed_url.url, analysis_user.time; """.format(user_id)
+                result = db_obj.execute(sql)
+
+                return make_response(jsonify(result), 200)
+            else:
+                return make_response(jsonify(
+                    {"message": "Invalid parameters."}), 400)
+    return Response(status=401)
+
+
 @app.route('/api/seo-errors/<int:error_id>', methods=['GET'])
 def action_get_seo_error(error_id):
     if 'Auth-Key' in request.headers:
@@ -239,7 +272,6 @@ def action_seo_errors():
                     description = None if 'description' not in json_data else json_data['description']
                     attribute = None if 'attribute' not in json_data else json_data['attribute']
                     value = None if 'value' not in json_data else json_data['value']
-                    exit(1)
                     try:
                         db_obj.insert_data('seo_errors',
                                            [(name, tag, description, attribute, value)],
@@ -388,7 +420,7 @@ def action_get_analysis_errors(url_id):
                     try:
                         url_detail = db_obj.execute(
                             """SELECT analysis_errors.id, analysed_url.url, analysed_url.time_accessed, 
-                            seo_errors.name, seo_errors.error_condition, seo_errors.description FROM analysis_errors 
+                            seo_errors.name, seo_errors.description FROM analysis_errors 
                             RIGHT JOIN analysed_url ON analysis_errors.url_id=analysed_url.id 
                             RIGHT JOIN seo_errors ON analysis_errors.error_id=seo_errors.id 
                             WHERE url_id = '""" + str(url_id) + "';")
@@ -445,7 +477,7 @@ def action_analysis_errors():
                 try:
                     all_records = db_obj.execute(
                         """SELECT analysis_errors.id, analysed_url.url, analysed_url.time_accessed, 
-                            seo_errors.name, seo_errors.error_condition, seo_errors.description FROM analysis_errors 
+                            seo_errors.name, seo_errors.description FROM analysis_errors 
                             JOIN analysed_url ON analysis_errors.url_id=analysed_url.id 
                             JOIN seo_errors ON analysis_errors.error_id=seo_errors.id;""")
                 except Exception as e:
@@ -595,8 +627,9 @@ def account_analyse():
     else:
         return render_template("account/analyse.html", username=user_name, api_key=user_api_key, Auth_Key=env.AUTH_KEY)
 
+
 @app.route('/account/history', methods=['GET'])
-def account_analyse():
+def account_history():
     user_cookie = request.cookies.get('seohelper_user_cookie')
     user_name = request.cookies.get('seohelper_username')
     user_api_key = request.cookies.get('seohelper_userapikey')

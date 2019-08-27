@@ -286,7 +286,13 @@ class Analyser:
 
         # User's analysis was successful.
         try:
-            self.db_obj.insert_data('analysis_user',
+            # Check if this analysis was done before.
+            checked_url_id = self.db_obj.exists('analysis_user', [(url_id, user_id)])
+            if checked_url_id:  # It exists. Update the time accessed to it.
+                self.db_obj.execute("UPDATE analysis_user SET time = {0} WHERE user_id = {1} AND url_id = {2}"
+                                    .format(time.time(), user_id, url_id))
+            else:
+                self.db_obj.insert_data('analysis_user',
                                     [(url_id, user_id, time.time())],
                                     COLUMNS=['url_id', 'user_id', 'time'])
             print("Analysis request made by user #{0} ({1}) is successful!".format(user_id, user_name))

@@ -90,10 +90,11 @@
             if (url === "") {
                 message = "This field cannot be empty!"
             } else {
+                var req = null;
                 message = "";
                 let submitButton = $('#single-submit');
                 let oldText = submitButton.val();
-                $.ajax({
+                req = $.ajax({
                     type: 'POST',
                     headers: {
                         'Auth-Key': '{{Auth_Key}}',
@@ -105,8 +106,10 @@
                         url: url,
                         api_key: "{{api_key}}"
                     }),
-                    beforeSend: function(){
-
+                    beforeSend: function () {
+                        if(req != null) {
+                            req.abort();
+                        }
                         submitButton.val("");
                         submitButton.addClass("button_loading");
                         submitButton.attr("disabled", true);
@@ -121,7 +124,7 @@
                         console.log(xhr, status, error);
                         $('#response_single').text(message);
                     },
-                    complete: function(){
+                    complete: function () {
                         submitButton.val(oldText);
                         submitButton.removeClass("button_loading");
                         submitButton.attr("disabled", false);
@@ -142,10 +145,11 @@
             if (batch_box.val() === "") {
                 message = "This field cannot be empty!"
             } else {
+                let req = null;
                 message = "";
                 let submitButton = $('#batch-submit');
                 let oldText = submitButton.val();
-                $.ajax({
+                req = $.ajax({
                     type: 'POST',
                     headers: {
                         'Auth-Key': '{{Auth_Key}}',
@@ -157,8 +161,10 @@
                         url: urls,
                         api_key: "{{api_key}}"
                     }),
-                    beforeSend: function(){
-
+                    beforeSend: function () {
+                        if(req != null) {
+                             req.abort();
+                         }
                         submitButton.val("");
                         submitButton.addClass("button_loading");
                         submitButton.attr("disabled", true);
@@ -173,7 +179,7 @@
                         console.log(xhr, status, error);
                         $('#response_batch').text(message);
                     },
-                    complete: function(){
+                    complete: function () {
                         submitButton.val(oldText);
                         submitButton.removeClass("button_loading");
                         submitButton.attr("disabled", false);

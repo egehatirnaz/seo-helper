@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+   <meta charset="UTF-8">
+   <title>SEO Helper - Analyse</title>
+   <meta name="description"
+         content="Start analysing your websites for common SEO mistakes!">
+
+   <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+           integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+           crossorigin="anonymous"></script>
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
+           integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
+           crossorigin="anonymous"></script>
+   <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
+           integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
+           crossorigin="anonymous"></script>
+   <script src="https://code.jquery.com/jquery-3.3.1.js"></script>
+
+   <!-- Latest compiled and minified CSS -->
+   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+         integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+
+   <!-- Datatables Scripts -->
+   <script src="https://cdn.datatables.net/1.10.19/js/jquery.dataTables.min.js"></script>
+   <script src="https://cdn.datatables.net/1.10.19/js/dataTables.bootstrap4.min.js"></script>
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.8.4/moment.min.js"></script>
+   <script src="https://cdn.datatables.net/plug-ins/1.10.19/sorting/datetime-moment.js"></script>
+
+   <!-- Datatables -->
+   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.1.3/css/bootstrap.css">
+   <link rel="stylesheet" href="https://cdn.datatables.net/1.10.19/css/dataTables.bootstrap4.min.css">
+
+   <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
+
+   <style>
+      .input-prompt {
+         margin: 0 0 3px 0 !important;
+      }
+   </style>
+</head>
+<body>
+<div class="header">
+   <a href="/" class="logo">SEO Helper</a>
+   <div class="header-right">
+      <a href="account/settings">{{username}}</a>
+      <a href="/account/analyse">Analyse</a>
+      <a class="active" href="/account/history">History</a>
+      <a href="/logout">Logout</a>
+   </div>
+</div>
+<div class="page">
+   <div class="container">
+      <div class="content large">
+         <h1>Your Analysis History</h1>
+         <p>Here are your previous analysis requests and their results.</p>
+         <div id="analysis-results-div">
+            <table id="table_id" class="table table-striped table-bordered" style="width:100%">
+               <thead>
+               <tr>
+                  <th>URL</th>
+                  <th>Found Errors</th>
+                  <th>Request Date</th>
+               </tr>
+               </thead>
+               <tbody>
+               <tr>
+                  <td>-</td>
+                  <td>-</td>
+                  <td>-</td>
+               </tr>
+               </tbody>
+            </table>
+         </div>
+      </div>
+   </div>
+</div>
+</body>
+<script>
+    $(document).ready(function () {
+        $.fn.dataTable.moment('DD.MM.YYYY HH:mm');
+        let history = [];
+        let req = null;
+        req = $.ajax({
+            type: 'POST',
+            headers: {
+                'Auth-Key': '{{Auth_Key}}',
+                'Content-Type': 'application/json'
+            },
+            url: "{{ url_for('action_get_user_history') }}",
+            contentType: 'application/json',
+            data: JSON.stringify({
+                api_key: "{{api_key}}"
+            }),
+            beforeSend: function () {
+                if (req != null) {
+                    req.abort();
+                }
+            },
+            success: function (data) {
+                data.forEach(function (element) {
+                    url = '<a href="' + element['url'] + '">' + element['url'] + '</a>';
+                    error_name = element['error_name']; // maybe split br's later.
+                    time = new Date(element['time'] * 1000);
+                    history.push({'url': url, 'error_name': error_name, 'time': time});
+                })
+            },
+            error: function (xhr, status, error) {
+                console.log("shit's on fire yo.");
+                console.log(xhr, status, error);
+            },
+            complete: function () {
+                $('#table_id').DataTable({
+                    autoWidth: true,
+                    "order": [[ 2, "desc" ]],
+                    columns: [
+                        {"data": "url"},
+                        {"data": "error_name"},
+                        {
+                            "data": "time",
+                            type: 'date',
+                            format: 'dd/mm/yyyy hh:ii',
+                            render: function (data, type, row) {
+                                if (type === "sort" || type === "type") {
+                                    return data;
+                                }
+                                return moment(data).format("DD.MM.YYYY HH:mm");
+                            },
+                            width: "20%"
+                        }
+                    ],
+                    data: history
+                });
+            }
+        });
+
+
+    });
+</script>
+</html>
