@@ -34,6 +34,7 @@
    <div class="header-right">
       <a href="account/settings">{{username}}</a>
       <a class="active" href="/account/analyse">Analyse</a>
+      <a href="/account/history">History</a>
       <a href="/logout">Logout</a>
    </div>
 </div>
@@ -54,7 +55,7 @@
                      <p class="input-prompt">Target URL</p>
                      <input id="single_url" type="text" name="url">
                   </div>
-                  <input type="submit" class="btn btn-secondary" value="Analyse!">
+                  <input type="submit" id="single-submit" class="btn btn-secondary" value="Analyse!">
                </form>
             </div>
             <p class="form-message" id="response_single"></p>
@@ -70,7 +71,7 @@
                      <label for="batch_urls" class="input-prompt">Target URLs</label><br>
                      <textarea id="batch_urls" name="url"></textarea>
                   </div>
-                  <input type="submit" class="btn btn-secondary" value="Analyse Them All!">
+                  <input type="submit" id="batch-submit" class="btn btn-secondary" value="Analyse Them All!">
                </form>
             </div>
             <p class="form-message" id="response_batch"></p>
@@ -90,6 +91,8 @@
                 message = "This field cannot be empty!"
             } else {
                 message = "";
+                let submitButton = $('#single-submit');
+                let oldText = submitButton.val();
                 $.ajax({
                     type: 'POST',
                     headers: {
@@ -102,6 +105,12 @@
                         url: url,
                         api_key: "{{api_key}}"
                     }),
+                    beforeSend: function(){
+
+                        submitButton.val("");
+                        submitButton.addClass("button_loading");
+                        submitButton.attr("disabled", true);
+                    },
                     success: function (data) {
                         console.log(data);
                         message = data;
@@ -111,6 +120,12 @@
                         console.log("shit's on fire yo.");
                         console.log(xhr, status, error);
                         $('#response_single').text(message);
+                    },
+                    complete: function(){
+                        submitButton.val(oldText);
+                        submitButton.removeClass("button_loading");
+                        submitButton.attr("disabled", false);
+
                     }
                 });
             }
@@ -120,12 +135,16 @@
         // BATCH REQUEST
         $('#batch-analysis').on('submit', function (e) {
             e.preventDefault();
+
             let message = "";
-            let urls = $('#batch_urls').val().split("\n");
-            if (urls === "") {
+            let batch_box = $('#batch_urls');
+            let urls = batch_box.val().split("\n");
+            if (batch_box.val() === "") {
                 message = "This field cannot be empty!"
             } else {
                 message = "";
+                let submitButton = $('#batch-submit');
+                let oldText = submitButton.val();
                 $.ajax({
                     type: 'POST',
                     headers: {
@@ -138,6 +157,12 @@
                         url: urls,
                         api_key: "{{api_key}}"
                     }),
+                    beforeSend: function(){
+
+                        submitButton.val("");
+                        submitButton.addClass("button_loading");
+                        submitButton.attr("disabled", true);
+                    },
                     success: function (data) {
                         console.log(data);
                         message = data;
@@ -147,6 +172,12 @@
                         console.log("shit's on fire yo.");
                         console.log(xhr, status, error);
                         $('#response_batch').text(message);
+                    },
+                    complete: function(){
+                        submitButton.val(oldText);
+                        submitButton.removeClass("button_loading");
+                        submitButton.attr("disabled", false);
+
                     }
                 });
             }

@@ -160,3 +160,8 @@ h1, h2, h3, h4, h5, h6, p{
     border: #999999 solid 1px;
     border-radius: 4px;
 }
+
+.button_loading {
+    background: url('ajax-loader.gif') no-repeat 50% 50%;
+    background-color: #6c757d;
+}

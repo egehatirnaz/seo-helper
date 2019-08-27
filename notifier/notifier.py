@@ -66,7 +66,7 @@ class Notifier:
             for err in err_list:
                 error_name = err[0]
                 error_description = err[1]
-                analysis_url_result_string += "<tr><td>" + error_name + "</td><td>" + error_description + "</td></tr>"
+                analysis_url_result_string += "<tr><td>" + error_name + "</td><td>" + error_description + "</td></tr><br>"
             analysis_url_result_string += "</tbody></table><br><br>"
             urls_and_errors_string += analysis_url_result_string
         message = message.replace("{{urls_and_errors}}", urls_and_errors_string)

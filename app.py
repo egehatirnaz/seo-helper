@@ -595,6 +595,17 @@ def account_analyse():
     else:
         return render_template("account/analyse.html", username=user_name, api_key=user_api_key, Auth_Key=env.AUTH_KEY)
 
+@app.route('/account/history', methods=['GET'])
+def account_analyse():
+    user_cookie = request.cookies.get('seohelper_user_cookie')
+    user_name = request.cookies.get('seohelper_username')
+    user_api_key = request.cookies.get('seohelper_userapikey')
+    # TODO: This check is wrong dude.
+    if not user_cookie and not user_name and not user_api_key:
+        return redirect(url_for('login'))
+    else:
+        return render_template("account/history.html", username=user_name, api_key=user_api_key, Auth_Key=env.AUTH_KEY)
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=7070)
