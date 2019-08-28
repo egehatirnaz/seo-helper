@@ -257,17 +257,41 @@ def action_get_user_history():
                 user_id = db_obj.execute(sql)[0]['user_id']
 
                 # Dankest sql bruh.
-                sql = """SELECT analysed_url.url,
-                    GROUP_CONCAT(seo_errors.name SEPARATOR '<br><br>') AS error_name,
+                #sql = """SELECT analysed_url.url,
+                #    GROUP_CONCAT(seo_errors.name SEPARATOR '<br><br>') AS error_name,
+                #    analysis_user.time
+                #    FROM analysis_user
+                #    JOIN analysed_url ON analysis_user.url_id = analysed_url.id
+                #    JOIN analysis_errors ON analysis_errors.url_id = analysis_user.url_id
+                #    JOIN seo_errors ON analysis_errors.error_id = seo_errors.id
+                #    WHERE analysis_user.user_id = {0} GROUP BY analysed_url.url, analysis_user.time; """.format(user_id)
+
+                sql = """SELECT analysis_user.url_id, analysed_url.url,
                     analysis_user.time
                     FROM analysis_user 
-                    JOIN analysed_url ON analysis_user.url_id = analysed_url.id 
+                    JOIN analysed_url ON analysis_user.url_id = analysed_url.id
+                    WHERE analysis_user.user_id = {0};""".format(user_id)
+                url_time_array = db_obj.execute(sql)
+
+                sql = """SELECT GROUP_CONCAT(seo_errors.name SEPARATOR '<br><br>') AS error_name,
+                    analysis_user.url_id
+                    FROM analysis_user
+                    JOIN analysed_url ON analysis_user.url_id = analysed_url.id
                     JOIN analysis_errors ON analysis_errors.url_id = analysis_user.url_id
                     JOIN seo_errors ON analysis_errors.error_id = seo_errors.id
-                    WHERE analysis_user.user_id = {0} GROUP BY analysed_url.url, analysis_user.time; """.format(user_id)
-                result = db_obj.execute(sql)
+                    WHERE analysis_user.user_id = {0} GROUP BY analysed_url.url, analysis_user.url_id;""".format(user_id)
+                url_error_array = db_obj.execute(sql)
 
-                return make_response(jsonify(result), 200)
+                result = []
+
+                for url_time in url_time_array:  # Bigger one.
+                    url_id = url_time['url_id']
+                    url_time['error_name'] = " - "
+                    for url_error in url_error_array:
+                        if url_id == url_error['url_id']:
+                            url_time['error_name'] = url_error['error_name']
+
+                return make_response(jsonify(url_time_array), 200)
             else:
                 return make_response(jsonify(
                     {"message": "Invalid parameters."}), 400)

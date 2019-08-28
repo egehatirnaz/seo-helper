@@ -79,10 +79,10 @@
 <script>
     $(document).ready(function () {
         $.fn.dataTable.moment('DD.MM.YYYY HH:mm');
-        $.ajaxSetup({ cache: false });
         let history = [];
         let req = null;
         req = $.ajax({
+            cache: false,
             type: 'POST',
             headers: {
                 'Auth-Key': '{{Auth_Key}}',
@@ -91,7 +91,8 @@
             url: "{{ url_for('action_get_user_history') }}",
             contentType: 'application/json',
             data: JSON.stringify({
-                api_key: "{{api_key}}"
+                api_key: "{{api_key}}",
+                time: Date()
             }),
             beforeSend: function () {
                 if (req != null) {
