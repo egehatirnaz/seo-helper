@@ -131,7 +131,7 @@ def action_user():
                 json_data = request.get_json()
                 if 'name_surname' in json_data and 'password' in json_data and 'email' in json_data:
                     name_surname = json_data['name_surname']
-                    password = get_hashed_password(json_data['password'])
+                    password = get_hashed_password(json_data['password']).decode("utf-8")
                     email = json_data['email']
 
                     # Checking if the user already exists.
@@ -189,6 +189,55 @@ def action_user():
                 return make_response(jsonify(userdata), 200)
             else:
                 return Response(status=405)
+    return Response(status=401)
+
+
+@app.route('/api/update-user', methods=['POST'])
+def action_update_user():
+    if 'Auth-Key' in request.headers:
+        auth_key = request.headers['Auth-Key']
+        if valid_auth(auth_key):  # Valid Auth Key, proceed as usual.
+            if request.method == 'POST':
+
+                # JSON control.
+                if not check_json(request):
+                    return make_response(jsonify(
+                        {"message": "Request body must be JSON."}), 400)
+                # Creating a user with given values.
+                json_data = request.get_json()
+                if 'old_pw' in json_data and 'new_pw' in json_data and 'email' in json_data:
+                    email = json_data['email']
+                    old_pw = json_data['old_pw']
+                    new_pw = json_data['new_pw']
+
+                    # Checking if the user already exits.
+                    checked_user_id = db_obj.exists('user', [('email', email)])
+                    if checked_user_id:  # It exists.
+                        checked_user = db_obj.get_data("user",
+                                                       COLUMNS=["name_surname", "password", "email"],
+                                                       WHERE=[{'init': {'id': checked_user_id}}],
+                                                       OPERATOR="eq")[0]
+                        checked_pass = checked_user['password']
+                        passcheck = check_password(old_pw, checked_pass)
+                        if passcheck:
+                            # Pass is right, update with new password.
+                            new_pw = get_hashed_password(new_pw).decode("utf-8")
+                            try:
+                                db_obj.execute(
+                                    'UPDATE user SET password = "{0}" WHERE email = "{1}"'
+                                        .format(new_pw, email))
+                            except Exception as e:
+                                print(e)
+                                return make_response(jsonify(
+                                    {"message": "Action could not be performed. Query did not execute successfully."}),
+                                    500)
+                            return make_response(jsonify(
+                                {"message": "Password updated successfully!"}), 200)
+                    return make_response(jsonify(
+                        {"message": "Invalid password."}), 200)
+                else:
+                    return make_response(jsonify(
+                        {"message": "Invalid parameters."}), 400)
     return Response(status=401)
 
 
@@ -638,6 +687,20 @@ def account_history():
         return redirect(url_for('login'))
     else:
         return render_template("account/history.html", username=user_name, api_key=user_api_key, Auth_Key=env.AUTH_KEY)
+
+
+@app.route('/account/settings', methods=['GET'])
+def account_settings():
+    user_cookie = request.cookies.get('seohelper_user_cookie')
+    user_name = request.cookies.get('seohelper_username')
+    user_mail = request.cookies.get('seohelper_usermail')
+    user_api_key = request.cookies.get('seohelper_userapikey')
+    # TODO: This check is wrong dude.
+    if not user_cookie and not user_name and not user_api_key:
+        return redirect(url_for('login'))
+    else:
+        return render_template("account/settings.html", username=user_name,
+                               usermail=user_mail, api_key=user_api_key, Auth_Key=env.AUTH_KEY)
 
 
 if __name__ == '__main__':

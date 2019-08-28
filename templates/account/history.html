@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
    <meta charset="UTF-8">
-   <title>SEO Helper - Analyse</title>
+   <title>SEO Helper - History</title>
    <meta name="description"
-         content="Start analysing your websites for common SEO mistakes!">
+         content="You've requested your analysis from Seo Helper and here are your results. Let's not keep you waiting!">
 
    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
            integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
@@ -43,7 +43,7 @@
 <div class="header">
    <a href="/" class="logo">SEO Helper</a>
    <div class="header-right">
-      <a href="account/settings">{{username}}</a>
+      <a href="/account/settings">{{username}}</a>
       <a href="/account/analyse">Analyse</a>
       <a class="active" href="/account/history">History</a>
       <a href="/logout">Logout</a>
@@ -79,6 +79,7 @@
 <script>
     $(document).ready(function () {
         $.fn.dataTable.moment('DD.MM.YYYY HH:mm');
+        $.ajaxSetup({ cache: false });
         let history = [];
         let req = null;
         req = $.ajax({

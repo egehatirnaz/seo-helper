@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+   <meta charset="UTF-8">
+   <title>SEO Helper - Settings</title>
+   <meta name="description"
+         content="Settings page for your Seo Helper account. You can change your account details here.">
+
+   <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+           integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+           crossorigin="anonymous"></script>
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
+           integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
+           crossorigin="anonymous"></script>
+   <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
+           integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
+           crossorigin="anonymous"></script>
+   <script src="http://code.jquery.com/jquery-1.9.1.js"></script>
+
+   <!-- Latest compiled and minified CSS -->
+   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+         integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+
+   <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
+   <style>
+      .input-prompt {
+         margin: 0 0 3px 0 !important;
+      }
+   </style>
+</head>
+<body>
+<div class="header">
+   <a href="/" class="logo">SEO Helper</a>
+   <div class="header-right">
+      <a class="active" href="/account/settings">{{username}}</a>
+      <a href="/account/analyse">Analyse</a>
+      <a href="/account/history">History</a>
+      <a href="/logout">Logout</a>
+   </div>
+</div>
+<div class="page">
+   <div class="container">
+      <div class="content large">
+         <h1>Account Details</h1>
+         <p>From here, you are able to see your account information, access your API key and change your password.</p>
+         <div id="account-div" class="analysis-choice-wrapper">
+            <h3>Account Information:</h3>
+            <p>
+               <b>User Name:</b> {{username}}<br>
+               <b>User E-mail:</b> {{usermail}}<br>
+               <b>API Key : {{api_key}}</b><br>
+            </p>
+            <br>
+            <div class="form-heading" style="margin-bottom: 30px;">
+               <p><b>Note:</b> Please do not share your API key with anyone. Just be cool, okay?</p>
+            </div>
+
+            <h3>Update Password:</h3>
+            <div class="form-heading" style="margin-bottom: 10px;">
+               <p style="display:inline">To update your password, please provide a new password.</p>
+            </div>
+            <div class="form-body" style="display:block">
+               <form id="pw-change" method="POST" style="max-width: 66%;">
+                  <div class="form-field">
+                     <p class="input-prompt">Old Password</p>
+                     <input id="old-pw" type="password" name="old-pw">
+                  </div>
+                  <div class="form-field">
+                     <p class="input-prompt">New Password</p>
+                     <input id="new-pw" type="password" name="pw">
+                  </div>
+                  <div class="form-field">
+                     <p class="input-prompt">Confirm Password</p>
+                     <input id="new-pw-confirm" type="password" name="pw-confirm">
+                  </div>
+                  <input type="submit" id="pw-submit" class="btn btn-secondary" value="Update!">
+               </form>
+            </div>
+            <p class="form-message" id="response_single"></p>
+         </div>
+      </div>
+   </div>
+</div>
+</body>
+<script>
+    $(function () {
+        // SINGLE REQUEST
+        $('#pw-change').on('submit', function (e) {
+            e.preventDefault();
+            let message = "";
+
+            let old_pw = $('#old-pw').val();
+            let new_pw = $('#new-pw').val();
+            let new_pw_confirm = $('#new-pw-confirm').val();
+
+            if (old_pw === "" || new_pw === "" || new_pw_confirm === "") {
+                message = "All fields are mandatory!"
+            } else {
+                if (new_pw !== new_pw_confirm ){
+                    message = "New passwords don't match."
+                } else {
+                    var req = null;
+                    message = "";
+                    let submitButton = $('#pw-submit');
+                    let oldText = submitButton.val();
+                    req = $.ajax({
+                        type: 'POST',
+                        headers: {
+                            'Auth-Key': '{{Auth_Key}}',
+                            'Content-Type': 'application/json'
+                        },
+                        url: "{{ url_for('action_update_user') }}",
+                        contentType: 'application/json',
+                        data: JSON.stringify({
+                            email: "{{usermail}}",
+                            old_pw: old_pw,
+                            new_pw: new_pw,
+                        }),
+                        beforeSend: function () {
+                            if (req != null) {
+                                req.abort();
+                            }
+                            submitButton.val("");
+                            submitButton.addClass("button_loading");
+                            submitButton.attr("disabled", true);
+                        },
+                        success: function (data) {
+                            console.log(data);
+                            message = data['message'];
+                            $('#response_single').text(message);
+                        },
+                        error: function (xhr, status, error) {
+                            console.log("shit's on fire yo.");
+                            console.log(xhr, status, error);
+                            $('#response_single').text(message);
+                        },
+                        complete: function () {
+                            submitButton.val(oldText);
+                            submitButton.removeClass("button_loading");
+                            submitButton.attr("disabled", false);
+                        }
+                    });
+                }
+            }
+            $('#response_single').text(message);
+        });
+    });
+</script>
+</html>

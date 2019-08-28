@@ -273,13 +273,14 @@ class Analyser:
         try:
             # Clear out the existing broken links.
             # (I'm not content with this solution. Maybe I should've left the unchanged data)
-            self.db_obj.execute("DELETE FROM analysed_url_href_404 WHERE url_id = " + str(url_id))
+            self.db_obj.execute("DELETE FROM analysed_url_href_404 WHERE `url_id` = " + str(url_id))
 
-            # Add the broken links to DB.
-            for link in broken_links:
-                self.db_obj.insert_data('analysed_url_href_404',
-                                        [(url_id, link)],
-                                        COLUMNS=['url_id', 'href'])
+            if len(broken_links) > 0:
+                # Add the broken links to DB.
+                for link in broken_links:
+                    self.db_obj.insert_data('analysed_url_href_404',
+                                            [(url_id, link)],
+                                            COLUMNS=['url_id', 'href'])
         except Exception as e:
             print(e)
             return None, "Action could not be performed. Query did not execute successfully."
@@ -287,14 +288,14 @@ class Analyser:
         # User's analysis was successful.
         try:
             # Check if this analysis was done before.
-            checked_url_id = self.db_obj.exists('analysis_user', [(url_id, user_id)])
+            checked_url_id = self.db_obj.exists('analysis_user', [('url_id', url_id), ('user_id', user_id)])
             if checked_url_id:  # It exists. Update the time accessed to it.
                 self.db_obj.execute("UPDATE analysis_user SET time = {0} WHERE user_id = {1} AND url_id = {2}"
                                     .format(time.time(), user_id, url_id))
             else:
                 self.db_obj.insert_data('analysis_user',
-                                    [(url_id, user_id, time.time())],
-                                    COLUMNS=['url_id', 'user_id', 'time'])
+                                        [(url_id, user_id, time.time())],
+                                        COLUMNS=['url_id', 'user_id', 'time'])
             print("Analysis request made by user #{0} ({1}) is successful!".format(user_id, user_name))
 
             try:
