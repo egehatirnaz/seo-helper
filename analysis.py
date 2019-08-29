@@ -7,6 +7,7 @@ import dbClass
 import env
 import time
 import requests
+from multiprocessing.dummy import Pool
 
 
 class Analyser:
@@ -37,15 +38,49 @@ class Analyser:
         else:
             return False
 
-    def find_broken_links(self, crawl_data, url):
-        href_list = [tag['href'] for tag in crawl_data.find_all('a', href=True)]
+    @staticmethod
+    def broken_link_helper(href):
+        try:
+            # Try out a HEAD request.
+            try:
+                r = requests.head(href)
+                if not r.ok:
+                    # HEAD request failed, perhaps it is blocked? Try GET.
+                    r = requests.get(href)
+                    if not r.ok:
+                        return False
+            except Exception as e:
+                print("Link with error:", href)
+                print("Request failed with:", e)
+        except Exception as e:
+            print("Link with error:", href)
+            print("Request failed with:", e)
+        return True
+
+    @staticmethod
+    def url_absolute(base_url, href_list):
         broken_links = []
-        for link in href_list:
-            absolute_href = urljoin(url, link)
-            r = requests.head(absolute_href)
-            if not r.ok:
+        for href in href_list:
+            absolute_href = urljoin(base_url, href)
+            if "http://" in absolute_href or "https://" in absolute_href:
                 broken_links.append(absolute_href)
         return broken_links
+
+    def find_broken_links(self, crawl_data, url):
+        href_list = [tag['href'] for tag in crawl_data.find_all('a', href=True)]
+
+        # Get absolute links from all ahref tags.
+        absolute_links = self.url_absolute(url, href_list)
+
+        # Send a head request to each and every one of them. Get boolean list of link being OK.
+        thread_count = 100  # Parallel programming mf, ever heard of it?
+        pool = Pool(thread_count)
+        processed_links = pool.map(self.broken_link_helper, absolute_links)
+
+        status_dict = list(zip(processed_links, absolute_links))
+        filtered_links = [link[1] for link in status_dict if link[0] is False]
+
+        return filtered_links
 
     def find_errors(self, defined_errors, crawl_data, url_id):
         url_error_list = []
@@ -228,7 +263,6 @@ class Analyser:
                     self.db_obj.insert_data('analysis_errors',
                                             [(url_id, error[0])],
                                             COLUMNS=['url_id', 'error_id'])
-
         else:  # A unique record.
             try:
                 # Find the sub-domain and domain of URL.
@@ -346,7 +380,6 @@ class Analyser:
             # for API!
             for link in url:
                 urls_error_list.append(self.analyse(link, user_data)[0])
-
         try:
             # Notify the user about errors & fixes via email.
             notifier = Notifier()
@@ -358,7 +391,7 @@ class Analyser:
         return result, "Success!"
 
     def main(self):
-        print(self.request_analysis(["http://127.0.0.1:5000/test-analysis"],
+        print(self.request_analysis(["https://www.njlifehacks.com/why-do-we-procrastinate/"],
                                     "7882e9e22bfa7dc96a6e8333a66091c51d5fe012",
                                     "batch"))
 

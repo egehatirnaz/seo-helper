@@ -282,8 +282,6 @@ def action_get_user_history():
                     WHERE analysis_user.user_id = {0} GROUP BY analysed_url.url, analysis_user.url_id;""".format(user_id)
                 url_error_array = db_obj.execute(sql)
 
-                result = []
-
                 for url_time in url_time_array:  # Bigger one.
                     url_id = url_time['url_id']
                     url_time['error_name'] = " - "
