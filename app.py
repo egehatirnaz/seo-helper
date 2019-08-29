@@ -583,7 +583,17 @@ def request_analysis():
             api_key = json_data['api_key']
 
             analyser = Analyser()
-            result = analyser.request_analysis(url, api_key, "single")
+
+            if 'mode' in json_data:
+                if json_data['mode'] is 'domain':
+                    result = analyser.request_analysis(url, api_key, "single", mode='domain')
+                elif json_data['mode'] is 'subdomain':
+                    result = analyser.request_analysis(url, api_key, "single", mode='subdomain')
+                else:
+                    return make_response(jsonify(
+                        {"message": "Invalid parameters."}), 400)
+            else:
+                result = analyser.request_analysis(url, api_key, "single")
             message = result[1]
             return make_response(message, 200)
         else:
@@ -609,7 +619,17 @@ def request_analysis_batch():
             api_key = json_data['api_key']
 
             analyser = Analyser()
-            result = analyser.request_analysis(url, api_key, "batch")
+
+            if 'mode' in json_data:
+                if json_data['mode'] is 'domain':
+                    result = analyser.request_analysis(url, api_key, "batch", mode='domain')
+                elif json_data['mode'] is 'subdomain':
+                    result = analyser.request_analysis(url, api_key, "batch", mode='subdomain')
+                else:
+                    return make_response(jsonify(
+                        {"message": "Invalid parameters."}), 400)
+            else:
+                result = analyser.request_analysis(url, api_key, "batch")
             message = result[1]
             return make_response(message, 200)
         else:
@@ -733,6 +753,7 @@ def add_header(r):
     """
     r.headers["Cache-Control"] = "no-store"
     return r
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=7070)

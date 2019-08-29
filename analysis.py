@@ -96,10 +96,11 @@ class Analyser:
 
         return filtered_links
 
-    def find_errors(self, defined_errors, crawl_data, url_id):
+    def find_errors(self, defined_errors, crawl_data, url_id, dup_mode):
         url_error_list = []
         url_meta_list = []
         # Scan the metadata according to defined errors.
+
         for error in defined_errors:
             url_meta_content = None
 
@@ -117,12 +118,32 @@ class Analyser:
                             # Now we can check if we're analysing duplicates.
                             if not missing_mode:
                                 # Check for duplicates.
-                                dup_check = self.db_obj.exists('analysed_url_meta',
-                                                               [('tag', error['tag']),
-                                                                ('attribute', error['attribute']),
-                                                                ('value', error['value']),
-                                                                ('content', found_tag_content)],
-                                                               exclude=('url_id', url_id))
+                                # TODO: What a shit code this is. Take a look later on.
+                                if dup_mode[0] is "default":
+                                    dup_check = self.db_obj.exists('analysed_url_meta',
+                                                                   [('tag', error['tag']),
+                                                                    ('attribute', error['attribute']),
+                                                                    ('value', error['value']),
+                                                                    ('content', found_tag_content)],
+                                                                   exclude=('url_id', url_id))
+                                else:
+                                    sql = """SELECT COUNT(*) AS count 
+                                    FROM analysed_url_meta JOIN analysed_url
+                                    on analysed_url_meta.url_id = analysed_url.id
+                                    WHERE analysed_url.{0} = "{1}" 
+                                    AND analysed_url_meta.tag = "{2}"
+                                    AND analysed_url_meta.attribute = "{3}"
+                                    AND analysed_url_meta.value = "{4}"
+                                    AND analysed_url_meta.content = "{5}"
+                                    AND analysed_url_meta.url_id != {6};""".format(
+                                        dup_mode[0], dup_mode[1], error['tag'],
+                                        error['attribute'], error['value'], found_tag_content, url_id)
+                                    # Execute the query and find out if count > 0
+                                    count = self.db_obj.execute(sql)[0]['count']
+                                    if count <= 0:
+                                        dup_check = False
+                                    else:
+                                        dup_check = True
                                 if dup_check is not False:
                                     url_error_list.append(True)  # Duplicate!
                                 else:
@@ -206,7 +227,7 @@ class Analyser:
         result = list(zip(list(x['id'] for x in defined_errors), url_error_list))
         return result, url_meta_list
 
-    def analyse(self, url, user_data):
+    def analyse(self, url, user_data, **kwargs):
         if user_data is not False:
             user_id = user_data['user_id']
             user_name = user_data['name']
@@ -221,8 +242,21 @@ class Analyser:
         # Handle the URL changes for 301, 302, etc.
         url = website_data['url']
 
+        # Get the domain and/or subdomain of this URL.
+        extracted_url = tldextract.extract(url)
+        subdomain = extracted_url.subdomain
+        domain = extracted_url.domain
+
         # Obtain crawl data for website.
         crawl = website_data['content']
+
+        # Check which mode are we in for checking duplicate contents.
+        dup_mode = ["default", None]
+        if 'mode' in kwargs:
+            if kwargs['mode'] == 'domain':
+                dup_mode = ["domain", domain]
+            elif kwargs['mode'] == 'subdomain':
+                dup_mode = ["subdomain", subdomain]
 
         # Check broken references in this website.
         broken_links = self.find_broken_links(crawl, url)
@@ -245,7 +279,7 @@ class Analyser:
             defined_errors = self.db_obj.execute("SELECT * FROM seo_errors")
 
             # Get the found error list of this URL.
-            errors = self.find_errors(defined_errors, crawl, url_id)
+            errors = self.find_errors(defined_errors, crawl, url_id, dup_mode)
             error_list = errors[0]
             meta_list = errors[1]
 
@@ -279,11 +313,6 @@ class Analyser:
                                             COLUMNS=['url_id', 'error_id'])
         else:  # A unique record.
             try:
-                # Find the sub-domain and domain of URL.
-                extracted_url = tldextract.extract(url)
-                subdomain = extracted_url.subdomain
-                domain = extracted_url.domain
-
                 # Add the new site to analysed_url.
                 self.db_obj.insert_data('analysed_url',
                                         [(url, subdomain, domain, time.time())],
@@ -295,7 +324,7 @@ class Analyser:
                 defined_errors = self.db_obj.execute("SELECT * FROM seo_errors")
 
                 # Get the found error list of this URL.
-                errors = self.find_errors(defined_errors, crawl, url_id)
+                errors = self.find_errors(defined_errors, crawl, url_id, dup_mode)
                 error_list = errors[0]
                 meta_list = errors[1]
 
@@ -371,7 +400,7 @@ class Analyser:
             print(e)
             return None, "Action could not be performed. Query did not execute successfully."
 
-    def request_analysis(self, url, api_key, mode):
+    def request_analysis(self, url, api_key, mode, **kwargs):
         auth = self.auth(api_key)
         if auth is False:
             return None, "Invalid API key."
@@ -387,13 +416,27 @@ class Analyser:
         # Check the request mode.
         if mode != "batch":
             if isinstance(url, str):
-                urls_error_list.append(self.analyse(url, user_data)[0])
+                if 'dup_mode' in kwargs:
+                    if kwargs['dup_mode'] == 'domain':
+                        urls_error_list.append(self.analyse(url, user_data, mode='domain')[0])
+                    elif kwargs['dup_mode'] == 'subdomain':
+                        urls_error_list.append(self.analyse(url, user_data, mode='subdomain')[0])
+                else:
+                    urls_error_list.append(self.analyse(url, user_data)[0])
             else:
                 return None, "Provided URL is not a string."
         else:
             # for API!
-            for link in url:
-                urls_error_list.append(self.analyse(link, user_data)[0])
+            if 'dup_mode' in kwargs:
+                if kwargs['dup_mode'] == 'domain':
+                    for link in url:
+                        urls_error_list.append(self.analyse(link, user_data, mode='domain')[0])
+                elif kwargs['dup_mode'] == 'subdomain':
+                    for link in url:
+                        urls_error_list.append(self.analyse(link, user_data, mode='subdomain')[0])
+            else:
+                for link in url:
+                    urls_error_list.append(self.analyse(link, user_data)[0])
         try:
             # Notify the user about errors & fixes via email.
             notifier = Notifier()
@@ -405,9 +448,9 @@ class Analyser:
         return result, "Success!"
 
     def main(self):
-        print(self.request_analysis(["https://www.njlifehacks.com/why-do-we-procrastinate/", "https://rare-technologies.com/word2vec-tutorial/"],
-                                    "7882e9e22bfa7dc96a6e8333a66091c51d5fe012",
-                                    "batch"))
+        mode = 'subdomain'
+        print(self.request_analysis(["https://developers.jotform.com"],
+                                    "7882e9e22bfa7dc96a6e8333a66091c51d5fe012", "batch", dup_mode=mode))
 
 
 if __name__ == '__main__':
