@@ -19,6 +19,7 @@ class DbMysql:
                                            db=db,
                                            charset='utf8mb4',
                                            cursorclass=pymysql.cursors.DictCursor)
+        self._connection.autocommit(True)
 
     @staticmethod
     def __build_get_query(table_name, **kwargs):

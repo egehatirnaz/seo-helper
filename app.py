@@ -725,5 +725,14 @@ def account_settings():
                                usermail=user_mail, api_key=user_api_key, Auth_Key=env.AUTH_KEY)
 
 
+@app.after_request
+def add_header(r):
+    """
+    Add headers to both force latest IE rendering engine or Chrome Frame,
+    and also to cache the rendered page for 10 minutes.
+    """
+    r.headers["Cache-Control"] = "no-store"
+    return r
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=7070)
