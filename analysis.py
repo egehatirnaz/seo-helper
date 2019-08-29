@@ -40,31 +40,45 @@ class Analyser:
 
     @staticmethod
     def broken_link_helper(href):
+        # Try out a HEAD request.
         try:
-            # Try out a HEAD request.
-            try:
-                r = requests.head(href)
+            r = requests.head(href, timeout=5)
+            if not r.ok:
+                # HEAD request failed, perhaps it is blocked? Try GET.
+                r = requests.get(href, timeout=10)
                 if not r.ok:
-                    # HEAD request failed, perhaps it is blocked? Try GET.
-                    r = requests.get(href)
-                    if not r.ok:
-                        return False
-            except Exception as e:
-                print("Link with error:", href)
-                print("Request failed with:", e)
-        except Exception as e:
-            print("Link with error:", href)
-            print("Request failed with:", e)
+                    return False
+        except requests.exceptions.Timeout:
+            try:
+                r = requests.get(href, timeout=10)
+                if not r.ok:
+                    return False
+            except requests.exceptions.Timeout:
+                return False
+            except requests.exceptions.ConnectionError:
+                return False
+        except requests.exceptions.ConnectionError:
+            try:
+                r = requests.get(href, timeout=10)
+                if not r.ok:
+                    return False
+            except requests.exceptions.Timeout:
+                return False
+            except requests.exceptions.ConnectionError:
+                return False
+        # Welcome to the internet where no URL behaves the same.
         return True
 
     @staticmethod
     def url_absolute(base_url, href_list):
-        broken_links = []
+        links = []
         for href in href_list:
             absolute_href = urljoin(base_url, href)
             if "http://" in absolute_href or "https://" in absolute_href:
-                broken_links.append(absolute_href)
-        return broken_links
+                pure_href = absolute_href.split('#')[0].split('?')[0]
+                if pure_href != base_url:
+                    links.append(absolute_href)
+        return links
 
     def find_broken_links(self, crawl_data, url):
         href_list = [tag['href'] for tag in crawl_data.find_all('a', href=True)]
@@ -391,7 +405,7 @@ class Analyser:
         return result, "Success!"
 
     def main(self):
-        print(self.request_analysis(["https://www.njlifehacks.com/why-do-we-procrastinate/"],
+        print(self.request_analysis(["https://www.njlifehacks.com/why-do-we-procrastinate/", "https://rare-technologies.com/word2vec-tutorial/"],
                                     "7882e9e22bfa7dc96a6e8333a66091c51d5fe012",
                                     "batch"))
 
