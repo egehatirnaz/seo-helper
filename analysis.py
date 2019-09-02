@@ -236,7 +236,7 @@ class Analyser:
 
         # Proceed for website crawling.
         website_data = self.crawler.get_crawled(url)
-        if website_data['status_code'] != 200:
+        if not website_data or website_data['status_code'] != 200:
             return None, "Non-OK HTTP response received!"
 
         # Handle the URL changes for 301, 302, etc.
@@ -505,7 +505,7 @@ class Analyser:
             result = notifier.notify(user_email, user_name, urls_error_list)
         except Exception as e:
             print(e)
-            return None, "Email could not be sent!"
+            return None, "Something went wrong!"
         # End of the road.
         return result, "Success!"
 

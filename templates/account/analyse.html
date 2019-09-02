@@ -55,9 +55,11 @@
          <p>You can choose between requesting a single SEO analysis or requesting a batch SEO analysis with your
             provided URL list.</p>
          <div id="settings-analysis-div" class="analysis-choice-wrapper">
-            <h3>Prefereneces</h3>
-            <p>Before requesting analysis, please choose your preferences here.</p>
-            <div id="settings" style="margin: 0 50px;">
+            <div id="settings-toggler" style="cursor:pointer">
+               <h3>Preferences</h3>
+               <p>You can click here to see and choose your request preferences.</p>
+            </div>
+            <div id="settings" style="margin: 0 50px;display:none;">
                <h5>Duplicate Checking Preferences</h5>
                <p>As default, we will check for duplicate contents from the entire database. However, if you wish to
                   check for duplicates within a subdomain or a domain of the given link, please choose so.</p>
@@ -88,11 +90,12 @@
                <p>If there are certain errors which aren't suitable for your analysis,
                   please choose these errors from the following list and you will not be notified about them.
                   <br>
-                  <b><i>Please note that even though you recieve no notification, these errors will still get recorded.</i></b>
+                  <b><i>Please note that even though you'll recieve no notification, these errors will still get
+                     recorded.</i></b>
                </p>
                <div style="min-width: 50%;">
                   <select id="ignore-select" multiple="multiple" onchange="ignore_handler();">
-                     <!-- We'll add SEO errors here. -->
+                     <!-- We'll add SEO errors here via AJAX. -->
                   </select>
                </div>
             </div>
@@ -172,7 +175,6 @@
                         submitButton.attr("disabled", true);
                     },
                     success: function (data) {
-                        console.log(data);
                         message = data;
                         $('#response_single').text(message);
                     },
@@ -229,7 +231,6 @@
                         submitButton.attr("disabled", true);
                     },
                     success: function (data) {
-                        console.log(data);
                         message = data;
                         $('#response_batch').text(message);
                     },
@@ -252,18 +253,20 @@
 
     function dup_check_handler(checkbox) {
         dup_check = checkbox.value;
-        console.log(dup_check);
     }
 
-    function ignore_handler(){
+    function ignore_handler() {
         ignored_errors = [];
         $('#ignore-select option:selected').each(function () {
             ignored_errors.push($(this).val());
         });
-        console.log(ignored_errors);
     }
 
     $(document).ready(function () {
+        $('#settings-toggler').click(function () {
+            $('#settings').toggle('slow');
+        });
+
         let ajax = null;
         let error_arr = [];
         ajax = $.ajax({
@@ -288,7 +291,6 @@
                     error_arr.push({'id': id, 'error_name': error_name});
                     $('#ignore-select').append($('<option></option>').val(id).html(error_name));
                 });
-                console.log(error_arr);
                 $('#ignore-select').multiselect({
                     buttonWidth: '100%',
                     dropUp: false
@@ -297,8 +299,6 @@
             error: function (xhr, status, error) {
                 console.log("shit's on fire yo.");
                 console.log(xhr, status, error);
-            },
-            complete: function () {
             }
         });
     });

@@ -23,6 +23,18 @@
 
    <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
 
+   <style>
+      h1{
+         font-size: 4rem;
+         margin: 25px 0;
+      }
+      h2{
+         font-size: 2rem;
+         margin: 15px 0;
+      }
+      .content p{
+      }
+   </style>
 
 </head>
 <body>
@@ -35,7 +47,36 @@
 </div>
 <div class="page">
    <div class="container">
-
+      <div class="content large">
+         <h1>SEO Helper</h1>
+         <p>
+            SEO Helper will help the process of analyzing a website for common SEO mistakes and errors.
+         </p>
+         <br>
+         <h2>What does it do?</h2>
+         <p>
+            SEO Helper is an analysis tool.<br><br>
+            For each provided URL, we check for common SEO bad practices regarding the metadata of the website.<br>
+            Each provided URL will be scanned for certain missing or duplicate HTML meta tags.<br>
+            We also check for broken links referenced in this URL.<br><br>
+            If certain errors are encountered in your URL, you will be notified via e-mail.
+         </p>
+         <br>
+         <h2>How To Use</h2>
+         <p>
+            After you sign up to SEO Helper with your e-mail address, an API key will be connected to that e-mail address.<br>
+            With this key, you will be able to use SEO Helper to analyse any given URL.
+         </p>
+         <div id="actions">
+            <div class="index-action">
+               Why don't you try out yourself?<br><a href="sign-up.html">Sign up now!</a>
+            </div>
+            <div class="seperator">
+            </div>
+            <div class="index-action">
+               Have an account already?<br><a href="login.html">Login!</a>
+            </div>
+         </div>
    </div>
 </div>
 </body>

@@ -1,8 +1,8 @@
-html, body{
+html, body {
     height: 100%;
 }
 
-h1, h2, h3, h4, h5, h6, p{
+h1, h2, h3, h4, h5, h6, p {
     font-family: "Helvetica Neue";
 }
 
@@ -22,11 +22,11 @@ h1, h2, h3, h4, h5, h6, p{
     font-size: 18px;
     line-height: 20px;
     border-radius: 4px;
-    margin-right:20px;
+    margin-right: 20px;
 }
 
 .header a.logo {
-    margin-left:30px;
+    margin-left: 30px;
     font-size: 25px;
     font-weight: bold;
 }
@@ -46,7 +46,7 @@ h1, h2, h3, h4, h5, h6, p{
     float: right;
 }
 
-.header-username{
+.header-username {
     float: left;
     color: whitesmoke;
     text-align: center;
@@ -54,28 +54,29 @@ h1, h2, h3, h4, h5, h6, p{
     text-decoration: none;
     font-size: 14px;
     line-height: 20px;
-    margin-right:20px;
+    margin-right: 20px;
 }
 
-.page{
+.page {
     height: 100%;
 }
-.container{
-    margin: 0!important;
+
+.container {
+    margin: 0 !important;
     min-width: 100% !important;
-    display:flex;
+    display: flex;
     justify-content: center;
     background-color: whitesmoke;
     min-height: 100%;
 }
 
-.content{
+.content {
     height: 100%;
     min-width: 40%;
     max-width: 40%;
     justify-content: center;
     background-color: white;
-    padding:20px;
+    padding: 20px;
     margin-top: 10%;
     border-radius: 25px;
 }
@@ -93,39 +94,39 @@ h1, h2, h3, h4, h5, h6, p{
     }
 }
 
-.form-heading{
+.form-heading {
     margin-bottom: 25px;
 }
 
-.form-heading h3{
+.form-heading h3 {
     margin-left: 15px;
     color: #999999;
 
 }
 
-.form-wrapper{
+.form-wrapper {
     min-width: 50%;
     padding: 20px 50px;
 }
 
-.form-body{
+.form-body {
     min-width: 100%;
     display: flex;
     justify-content: center;
 }
 
-.input-prompt, .form-prompt, label, .multiselect-selected-text{
+.input-prompt, .form-prompt, label, .multiselect-selected-text {
     color: #777777;
-    margin: 16px 0 3px 0!important;
+    margin: 16px 0 3px 0 !important;
     font-size: small;
 
 }
 
-.signup-field{
+.signup-field {
     margin-bottom: 20px;
 }
 
-.form-body form input{
+.form-body form input {
     line-height: 25px;
     font-size: medium;
     border: #999999 solid 1px;
@@ -133,27 +134,27 @@ h1, h2, h3, h4, h5, h6, p{
     width: 100%;
 }
 
-.btn-secondary{
-    margin-top:25px;
+.btn-secondary {
+    margin-top: 25px;
     width: 100%;
 }
 
-.form-message{
-    margin-top:25px;
+.form-message {
+    margin-top: 25px;
     font-weight: bold;
     color: #ba0000;
 }
 
-.large{
+.large {
     min-width: 66.66%;
 }
 
-.analysis-choice-wrapper{
+.analysis-choice-wrapper {
     margin-top: 50px;
 }
 
-.form-field textarea{
-    width:100%;
+.form-field textarea {
+    width: 100%;
     height: 200px;
     line-height: 25px;
     font-size: medium;
@@ -164,4 +165,30 @@ h1, h2, h3, h4, h5, h6, p{
 .button_loading {
     background: url('ajax-loader.gif') no-repeat 50% 50%;
     background-color: #6c757d;
+}
+
+.index-action {
+    width: 50%;
+    text-align: center;
+    font-weight: bold;
+    font-size: 1.3rem;
+}
+
+.index-action a {
+    color: #34495e;
+}
+
+.index-action a:hover {
+    text-decoration: none;
+    color: rgba(52, 73, 94, 0.68);
+}
+
+#actions {
+    margin-top: 2.5rem;
+    display: flex;
+    justify-content: space-around;
+}
+
+.seperator {
+    border: 1px solid #ccc;
 }
