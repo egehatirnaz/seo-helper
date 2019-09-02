@@ -257,7 +257,7 @@ def action_get_user_history():
                 user_id = db_obj.execute(sql)[0]['user_id']
 
                 # Dankest sql bruh.
-                #sql = """SELECT analysed_url.url,
+                # sql = """SELECT analysed_url.url,
                 #    GROUP_CONCAT(seo_errors.name SEPARATOR '<br><br>') AS error_name,
                 #    analysis_user.time
                 #    FROM analysis_user
@@ -279,7 +279,8 @@ def action_get_user_history():
                     JOIN analysed_url ON analysis_user.url_id = analysed_url.id
                     JOIN analysis_errors ON analysis_errors.url_id = analysis_user.url_id
                     JOIN seo_errors ON analysis_errors.error_id = seo_errors.id
-                    WHERE analysis_user.user_id = {0} GROUP BY analysed_url.url, analysis_user.url_id;""".format(user_id)
+                    WHERE analysis_user.user_id = {0} GROUP BY analysed_url.url, analysis_user.url_id;""".format(
+                    user_id)
                 url_error_array = db_obj.execute(sql)
 
                 for url_time in url_time_array:  # Bigger one.
@@ -586,11 +587,32 @@ def request_analysis():
 
             if 'mode' in json_data:
                 if json_data['mode'] == "domain":
-                    result = analyser.request_analysis(url, api_key, "single", dup_mode='domain')
+                    if 'ignore' in json_data:
+                        if len(json_data['ignore']) > 0:
+                            result = analyser.request_analysis(url, api_key, "single",
+                                                               dup_mode='domain', ignore_errors=json_data['ignore'])
+                        else:
+                            result = analyser.request_analysis(url, api_key, "single", dup_mode='domain')
+                    else:
+                        result = analyser.request_analysis(url, api_key, "single", dup_mode='domain')
                 elif json_data['mode'] == "subdomain":
-                    result = analyser.request_analysis(url, api_key, "single", dup_mode='subdomain')
+                    if 'ignore' in json_data:
+                        if len(json_data['ignore']) > 0:
+                            result = analyser.request_analysis(url, api_key, "single",
+                                                               dup_mode='subdomain', ignore_errors=json_data['ignore'])
+                        else:
+                            result = analyser.request_analysis(url, api_key, "single", dup_mode='subdomain')
+                    else:
+                        result = analyser.request_analysis(url, api_key, "single", dup_mode='subdomain')
                 elif json_data['mode'] == "default":
-                    result = analyser.request_analysis(url, api_key, "single")
+                    if 'ignore' in json_data:
+                        if len(json_data['ignore']) > 0:
+                            result = analyser.request_analysis(url, api_key, "single",
+                                                               ignore_errors=json_data['ignore'])
+                        else:
+                            result = analyser.request_analysis(url, api_key, "single")
+                    else:
+                        result = analyser.request_analysis(url, api_key, "single")
                 else:
                     return make_response(jsonify(
                         {"message": "Invalid parameters." + json_data['mode']}), 400)
@@ -623,12 +645,33 @@ def request_analysis_batch():
             analyser = Analyser()
 
             if 'mode' in json_data:
-                if json_data['mode'] is "domain":
-                    result = analyser.request_analysis(url, api_key, "batch", dup_mode='domain')
-                elif json_data['mode'] is "subdomain":
-                    result = analyser.request_analysis(url, api_key, "batch", dup_mode='subdomain')
-                elif json_data['mode'] is "default":
-                    result = analyser.request_analysis(url, api_key, "batch")
+                if json_data['mode'] == "domain":
+                    if 'ignore' in json_data:
+                        if len(json_data['ignore']) > 0:
+                            result = analyser.request_analysis(url, api_key, "batch",
+                                                               dup_mode='domain', ignore_errors=json_data['ignore'])
+                        else:
+                            result = analyser.request_analysis(url, api_key, "batch", dup_mode='domain')
+                    else:
+                        result = analyser.request_analysis(url, api_key, "batch", dup_mode='domain')
+                elif json_data['mode'] == "subdomain":
+                    if 'ignore' in json_data:
+                        if len(json_data['ignore']) > 0:
+                            result = analyser.request_analysis(url, api_key, "batch",
+                                                               dup_mode='subdomain', ignore_errors=json_data['ignore'])
+                        else:
+                            result = analyser.request_analysis(url, api_key, "batch", dup_mode='subdomain')
+                    else:
+                        result = analyser.request_analysis(url, api_key, "batch", dup_mode='subdomain')
+                elif json_data['mode'] == "default":
+                    if 'ignore' in json_data:
+                        if len(json_data['ignore']) > 0:
+                            result = analyser.request_analysis(url, api_key, "batch",
+                                                               ignore_errors=json_data['ignore'])
+                        else:
+                            result = analyser.request_analysis(url, api_key, "batch")
+                    else:
+                        result = analyser.request_analysis(url, api_key, "batch")
                 else:
                     return make_response(jsonify(
                         {"message": "Invalid parameters."}), 400)

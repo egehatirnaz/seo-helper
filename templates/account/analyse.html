@@ -16,10 +16,15 @@
            integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
            crossorigin="anonymous"></script>
    <script src="http://code.jquery.com/jquery-1.9.1.js"></script>
+   <script
+         src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-multiselect/0.9.15/js/bootstrap-multiselect.js"></script>
 
    <!-- Latest compiled and minified CSS -->
    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
          integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+
+   <link rel="stylesheet"
+         href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-multiselect/0.9.15/css/bootstrap-multiselect.css">
 
    <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
    <style>
@@ -27,6 +32,10 @@
          margin: 0 0 3px 0 !important;
       }
 
+      .dropdown-menu {
+         min-width: 50%;
+         padding: 10px 0;
+      }
    </style>
 </head>
 <body>
@@ -52,7 +61,7 @@
                <h5>Duplicate Checking Preferences</h5>
                <p>As default, we will check for duplicate contents from the entire database. However, if you wish to
                   check for duplicates within a subdomain or a domain of the given link, please choose so.</p>
-               <div style="display:flex; justify-content: space-around">
+               <div style="display:flex; justify-content: space-around; margin-bottom: 40px">
                   <div class="form-check">
                      <input class="form-check-input" type="radio" name="mode" id="dup_check1" value="default"
                             onchange="dup_check_handler(this);" checked>
@@ -74,6 +83,17 @@
                         Subdomain-wide Checking
                      </label>
                   </div>
+               </div>
+               <h5>Error Notification Preferences</h5>
+               <p>If there are certain errors which aren't suitable for your analysis,
+                  please choose these errors from the following list and you will not be notified about them.
+                  <br>
+                  <b><i>Please note that even though you recieve no notification, these errors will still get recorded.</i></b>
+               </p>
+               <div style="min-width: 50%;">
+                  <select id="ignore-select" multiple="multiple" onchange="ignore_handler();">
+                     <!-- We'll add SEO errors here. -->
+                  </select>
                </div>
             </div>
          </div>
@@ -115,6 +135,7 @@
 </body>
 <script>
     let dup_check = "default";
+    let ignored_errors = [];
     $(function () {
         // SINGLE REQUEST
         $('#single-analysis').on('submit', function (e) {
@@ -139,7 +160,8 @@
                     data: JSON.stringify({
                         url: url,
                         api_key: "{{api_key}}",
-                        mode: dup_check
+                        mode: dup_check,
+                        ignore: ignored_errors
                     }),
                     beforeSend: function () {
                         if (req != null) {
@@ -195,7 +217,8 @@
                     data: JSON.stringify({
                         url: urls,
                         api_key: "{{api_key}}",
-                        mode: dup_check
+                        mode: dup_check,
+                        ignore: ignored_errors
                     }),
                     beforeSend: function () {
                         if (req != null) {
@@ -231,5 +254,53 @@
         dup_check = checkbox.value;
         console.log(dup_check);
     }
+
+    function ignore_handler(){
+        ignored_errors = [];
+        $('#ignore-select option:selected').each(function () {
+            ignored_errors.push($(this).val());
+        });
+        console.log(ignored_errors);
+    }
+
+    $(document).ready(function () {
+        let ajax = null;
+        let error_arr = [];
+        ajax = $.ajax({
+            cache: false,
+            type: 'GET',
+            headers: {
+                'Auth-Key': '{{Auth_Key}}',
+                'Content-Type': 'application/json',
+                "cache-control": "no-cache"
+            },
+            url: "{{ url_for('action_seo_errors') }}",
+            contentType: 'application/json',
+            beforeSend: function () {
+                if (ajax != null) {
+                    ajax.abort();
+                }
+            },
+            success: function (data) {
+                data.forEach(function (element) {
+                    let id = element['id'];
+                    let error_name = element['name'];
+                    error_arr.push({'id': id, 'error_name': error_name});
+                    $('#ignore-select').append($('<option></option>').val(id).html(error_name));
+                });
+                console.log(error_arr);
+                $('#ignore-select').multiselect({
+                    buttonWidth: '100%',
+                    dropUp: false
+                });
+            },
+            error: function (xhr, status, error) {
+                console.log("shit's on fire yo.");
+                console.log(xhr, status, error);
+            },
+            complete: function () {
+            }
+        });
+    });
 </script>
 </html>

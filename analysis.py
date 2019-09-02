@@ -377,11 +377,26 @@ class Analyser:
 
             try:
                 # Get the issues for the last time.
-                sql = """SELECT seo_errors.name, seo_errors.description
-                FROM analysis_errors 
-                JOIN analysed_url ON analysis_errors.url_id = analysed_url.id 
-                JOIN seo_errors ON analysis_errors.error_id = seo_errors.id 
-                WHERE analysed_url.id = {0}""".format(url_id)
+                if 'ignore_errors' in kwargs:
+                    exclude_str = ""
+                    ignore_id_array = kwargs['ignore_errors']
+                    if len(ignore_id_array) > 0:
+                        exclude_arr = []
+                        for err_id in ignore_id_array:
+                            exclude_arr.append('seo_errors.id' + '!="' + str(err_id) + '"')
+                        exclude_str = " AND " + ' AND '.join(exclude_arr)
+
+                    sql = """SELECT seo_errors.name, seo_errors.description
+                                        FROM analysis_errors 
+                                        JOIN analysed_url ON analysis_errors.url_id = analysed_url.id 
+                                        JOIN seo_errors ON analysis_errors.error_id = seo_errors.id 
+                                        WHERE analysed_url.id = {0} """.format(url_id) + exclude_str
+                else:
+                    sql = """SELECT seo_errors.name, seo_errors.description
+                    FROM analysis_errors 
+                    JOIN analysed_url ON analysis_errors.url_id = analysed_url.id 
+                    JOIN seo_errors ON analysis_errors.error_id = seo_errors.id 
+                    WHERE analysed_url.id = {0}""".format(url_id)
 
                 issues = self.db_obj.execute(sql)
                 error_array = []
@@ -418,11 +433,35 @@ class Analyser:
             if isinstance(url, str):
                 if 'dup_mode' in kwargs:
                     if kwargs['dup_mode'] == 'domain':
-                        urls_error_list.append(self.analyse(url, user_data, mode='domain')[0])
+                        if 'ignore_errors' in kwargs:
+                            ignore_list = kwargs['ignore_errors']
+                            if len(ignore_list) > 0:
+                                urls_error_list.append(self.analyse(url, user_data,
+                                                                    mode='domain', ignore_errors=ignore_list)[0])
+                            else:
+                                urls_error_list.append(self.analyse(url, user_data, mode='domain')[0])
+                        else:
+                            urls_error_list.append(self.analyse(url, user_data, mode='domain')[0])
                     elif kwargs['dup_mode'] == 'subdomain':
-                        urls_error_list.append(self.analyse(url, user_data, mode='subdomain')[0])
+                        if 'ignore_errors' in kwargs:
+                            ignore_list = kwargs['ignore_errors']
+                            if len(ignore_list) > 0:
+                                urls_error_list.append(self.analyse(url, user_data,
+                                                                    mode='subdomain', ignore_errors=ignore_list)[0])
+                            else:
+                                urls_error_list.append(self.analyse(url, user_data, mode='subdomain')[0])
+                        else:
+                            urls_error_list.append(self.analyse(url, user_data, mode='subdomain')[0])
                 else:
-                    urls_error_list.append(self.analyse(url, user_data)[0])
+                    if 'ignore_errors' in kwargs:
+                        ignore_list = kwargs['ignore_errors']
+                        print(ignore_list)
+                        if len(ignore_list) > 0:
+                            urls_error_list.append(self.analyse(url, user_data, ignore_errors=ignore_list)[0])
+                        else:
+                            urls_error_list.append(self.analyse(url, user_data)[0])
+                    else:
+                        urls_error_list.append(self.analyse(url, user_data)[0])
             else:
                 return None, "Provided URL is not a string."
         else:
@@ -430,13 +469,36 @@ class Analyser:
             if 'dup_mode' in kwargs:
                 if kwargs['dup_mode'] == 'domain':
                     for link in url:
-                        urls_error_list.append(self.analyse(link, user_data, mode='domain')[0])
+                        if 'ignore_errors' in kwargs:
+                            ignore_list = kwargs['ignore_errors']
+                            if len(ignore_list) > 0:
+                                urls_error_list.append(self.analyse(link, user_data,
+                                                                    mode='domain', ignore_errors=ignore_list)[0])
+                            else:
+                                urls_error_list.append(self.analyse(link, user_data, mode='domain')[0])
+                        else:
+                            urls_error_list.append(self.analyse(link, user_data, mode='domain')[0])
                 elif kwargs['dup_mode'] == 'subdomain':
                     for link in url:
-                        urls_error_list.append(self.analyse(link, user_data, mode='subdomain')[0])
+                        if 'ignore_errors' in kwargs:
+                            ignore_list = kwargs['ignore_errors']
+                            if len(ignore_list) > 0:
+                                urls_error_list.append(self.analyse(link, user_data,
+                                                                    mode='subdomain', ignore_errors=ignore_list)[0])
+                            else:
+                                urls_error_list.append(self.analyse(link, user_data, mode='subdomain')[0])
+                        else:
+                            urls_error_list.append(self.analyse(link, user_data, mode='subdomain')[0])
             else:
                 for link in url:
-                    urls_error_list.append(self.analyse(link, user_data)[0])
+                    if 'ignore_errors' in kwargs:
+                        ignore_list = kwargs['ignore_errors']
+                        if len(ignore_list) > 0:
+                            urls_error_list.append(self.analyse(link, user_data, ignore_errors=ignore_list)[0])
+                        else:
+                            urls_error_list.append(self.analyse(link, user_data)[0])
+                    else:
+                        urls_error_list.append(self.analyse(link, user_data)[0])
         try:
             # Notify the user about errors & fixes via email.
             notifier = Notifier()
