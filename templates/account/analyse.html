@@ -23,9 +23,10 @@
 
    <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
    <style>
-      .input-prompt {
+      .input-prompt, label {
          margin: 0 0 3px 0 !important;
       }
+
    </style>
 </head>
 <body>
@@ -44,6 +45,38 @@
          <h1>Make A New Analysis Request</h1>
          <p>You can choose between requesting a single SEO analysis or requesting a batch SEO analysis with your
             provided URL list.</p>
+         <div id="settings-analysis-div" class="analysis-choice-wrapper">
+            <h3>Prefereneces</h3>
+            <p>Before requesting analysis, please choose your preferences here.</p>
+            <div id="settings" style="margin: 0 50px;">
+               <h5>Duplicate Checking Preferences</h5>
+               <p>As default, we will check for duplicate contents from the entire database. However, if you wish to
+                  check for duplicates within a subdomain or a domain of the given link, please choose so.</p>
+               <div style="display:flex; justify-content: space-around">
+                  <div class="form-check">
+                     <input class="form-check-input" type="radio" name="mode" id="dup_check1" value="default"
+                            onchange="dup_check_handler(this);" checked>
+                     <label class="form-check-label" for="dup_check1">
+                        Default Checking
+                     </label>
+                  </div>
+                  <div class="form-check">
+                     <input class="form-check-input" type="radio" name="mode" id="dup_check2" value="domain"
+                            onchange="dup_check_handler(this);">
+                     <label class="form-check-label" for="dup_check2">
+                        Domain-wide Checking
+                     </label>
+                  </div>
+                  <div class="form-check">
+                     <input class="form-check-input" type="radio" name="mode" id="dup_check3" value="subdomain"
+                            onchange="dup_check_handler(this);">
+                     <label class="form-check-label" for="dup_check3">
+                        Subdomain-wide Checking
+                     </label>
+                  </div>
+               </div>
+            </div>
+         </div>
          <div id="single-analysis-div" class="analysis-choice-wrapper">
             <h3>Single Analysis</h3>
             <div class="form-heading" style="margin-bottom: 10px;">
@@ -81,6 +114,7 @@
 </div>
 </body>
 <script>
+    let dup_check = "default";
     $(function () {
         // SINGLE REQUEST
         $('#single-analysis').on('submit', function (e) {
@@ -104,10 +138,11 @@
                     contentType: 'application/json',
                     data: JSON.stringify({
                         url: url,
-                        api_key: "{{api_key}}"
+                        api_key: "{{api_key}}",
+                        mode: dup_check
                     }),
                     beforeSend: function () {
-                        if(req != null) {
+                        if (req != null) {
                             req.abort();
                         }
                         submitButton.val("");
@@ -159,12 +194,13 @@
                     contentType: 'application/json',
                     data: JSON.stringify({
                         url: urls,
-                        api_key: "{{api_key}}"
+                        api_key: "{{api_key}}",
+                        mode: dup_check
                     }),
                     beforeSend: function () {
-                        if(req != null) {
-                             req.abort();
-                         }
+                        if (req != null) {
+                            req.abort();
+                        }
                         submitButton.val("");
                         submitButton.addClass("button_loading");
                         submitButton.attr("disabled", true);
@@ -190,5 +226,10 @@
             $('#response_batch').text(message);
         });
     });
+
+    function dup_check_handler(checkbox) {
+        dup_check = checkbox.value;
+        console.log(dup_check);
+    }
 </script>
 </html>

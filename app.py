@@ -585,13 +585,15 @@ def request_analysis():
             analyser = Analyser()
 
             if 'mode' in json_data:
-                if json_data['mode'] is 'domain':
-                    result = analyser.request_analysis(url, api_key, "single", mode='domain')
-                elif json_data['mode'] is 'subdomain':
-                    result = analyser.request_analysis(url, api_key, "single", mode='subdomain')
+                if json_data['mode'] == "domain":
+                    result = analyser.request_analysis(url, api_key, "single", dup_mode='domain')
+                elif json_data['mode'] == "subdomain":
+                    result = analyser.request_analysis(url, api_key, "single", dup_mode='subdomain')
+                elif json_data['mode'] == "default":
+                    result = analyser.request_analysis(url, api_key, "single")
                 else:
                     return make_response(jsonify(
-                        {"message": "Invalid parameters."}), 400)
+                        {"message": "Invalid parameters." + json_data['mode']}), 400)
             else:
                 result = analyser.request_analysis(url, api_key, "single")
             message = result[1]
@@ -621,10 +623,12 @@ def request_analysis_batch():
             analyser = Analyser()
 
             if 'mode' in json_data:
-                if json_data['mode'] is 'domain':
-                    result = analyser.request_analysis(url, api_key, "batch", mode='domain')
-                elif json_data['mode'] is 'subdomain':
-                    result = analyser.request_analysis(url, api_key, "batch", mode='subdomain')
+                if json_data['mode'] is "domain":
+                    result = analyser.request_analysis(url, api_key, "batch", dup_mode='domain')
+                elif json_data['mode'] is "subdomain":
+                    result = analyser.request_analysis(url, api_key, "batch", dup_mode='subdomain')
+                elif json_data['mode'] is "default":
+                    result = analyser.request_analysis(url, api_key, "batch")
                 else:
                     return make_response(jsonify(
                         {"message": "Invalid parameters."}), 400)
