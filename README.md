@@ -3,6 +3,19 @@
 # SEO Helper
 This project helps the process of analyzing a website for common SEO mistakes and errors. A URL given as a parameter will be crawled and analyzed for certain missing HTML meta tags. Analysis requests will be made through an API with a user's API key. The user will also be notified about existing SEO related errors.
 
+## What does it do?
+SEO Helper is an analysis tool.
+
+For each provided URL, we check for common SEO bad practices regarding the metadata of the website.
+Each provided URL will be scanned for certain missing or duplicate HTML meta tags.
+We also check for broken links referenced in this URL.
+
+If certain errors are encountered in your URL, you will be notified via e-mail.
+
+## How to use?
+After you sign up to SEO Helper with your e-mail address, an API key will be connected to that e-mail address.
+With this key, you will be able to use SEO Helper to analyse any given URL.
+
 ## Getting Started
 The necessary Python packages are listed under requirements.txt. You can run ```pip install -r requirements.txt``` to install the required packages.
 
@@ -17,3 +30,4 @@ DB_DATABASE = "seo-helper"
 AUTH_KEY = "..." *A predetermined authorization key for admin*
 ```
 
+After setting up env.py and getting the required packages, you're able to run `app.py` and connection to your MySQL database will be established. `http://localhost:5000` will serve your files.
