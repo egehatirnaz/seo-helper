@@ -224,8 +224,7 @@ def action_update_user():
                             new_pw = get_hashed_password(new_pw).decode("utf-8")
                             try:
                                 db_obj.execute(
-                                    'UPDATE user SET password = "{0}" WHERE email = "{1}"'
-                                        .format(new_pw, email))
+                                    'UPDATE user SET password = "{0}" WHERE email = "{1}"'.format(new_pw, email))
                             except Exception as e:
                                 print(e)
                                 return make_response(jsonify(
@@ -759,7 +758,6 @@ def account_analyse():
     user_cookie = request.cookies.get('seohelper_user_cookie')
     user_name = request.cookies.get('seohelper_username')
     user_api_key = request.cookies.get('seohelper_userapikey')
-    # TODO: This check is wrong dude.
     if not user_cookie and not user_name and not user_api_key:
         return redirect(url_for('login'))
     else:
@@ -771,7 +769,6 @@ def account_history():
     user_cookie = request.cookies.get('seohelper_user_cookie')
     user_name = request.cookies.get('seohelper_username')
     user_api_key = request.cookies.get('seohelper_userapikey')
-    # TODO: This check is wrong dude.
     if not user_cookie and not user_name and not user_api_key:
         return redirect(url_for('login'))
     else:
@@ -784,7 +781,6 @@ def account_settings():
     user_name = request.cookies.get('seohelper_username')
     user_mail = request.cookies.get('seohelper_usermail')
     user_api_key = request.cookies.get('seohelper_userapikey')
-    # TODO: This check is wrong dude.
     if not user_cookie and not user_name and not user_api_key:
         return redirect(url_for('login'))
     else:
