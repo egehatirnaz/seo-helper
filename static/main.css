@@ -38,7 +38,7 @@ h1, h2, h3, h4, h5, h6, p {
 /* Style the active/current link*/
 .header a.active {
     background-color: #f6f6f6;
-    color: #34495e;
+    color: #46627f;
 }
 
 /* Float the link section to the right */
@@ -191,4 +191,8 @@ h1, h2, h3, h4, h5, h6, p {
 
 .separator {
     border: 1px solid #ccc;
+}
+
+.btn-secondary{
+    background-color: #46627f;
 }
