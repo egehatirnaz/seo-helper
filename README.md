@@ -28,6 +28,11 @@ DB_PASSWORD = *Password of the database user*
 DB_DATABASE = "seo-helper"
 
 AUTH_KEY = "..." *A predetermined authorization key for admin*
+
+SMTP_PORT = *Port for the preferred SMTP service.*
+SMTP_EMAIL = *E-mail of the sender account*
+SMTP_PASSWORD = *Password of the sender account*
+SMTP_SERVER = *Your preferred SMTP server*
 ```
 
 After setting up env.py and getting the required packages, you're able to run `app.py` and connection to your MySQL database will be established. `http://localhost:5000` will serve your files.
