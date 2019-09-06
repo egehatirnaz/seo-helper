@@ -1,5 +1,6 @@
 from flask import Flask, request, Response, jsonify, make_response, render_template, redirect, url_for
 from analysis import Analyser
+import xml.etree.ElementTree as ET
 import tldextract
 import bcrypt
 import traceback
@@ -49,6 +50,23 @@ def get_hashed_password(plain_text_password):
 def check_password(plain_text_password, hashed_password):
     # Check hashed password. Using bcrypt, the salt is saved into the hash itself
     return bcrypt.checkpw(str(plain_text_password).encode('utf-8'), hashed_password.encode('utf-8'))
+
+
+def process_xml(xml_str):
+    url_array = []
+    if len(xml_str) != "":
+        root = ET.fromstring(xml_str)
+        if root:
+            for url in root.getchildren():
+                url_array.append(url.getchildren()[0].text)
+                # TODO: This should be addressed ASAP! Only works when 'loc' is the first child.
+            return url_array
+        else:
+            print("Root is empty somehow.")
+            return None
+    else:
+        print("xml_str is empty.")
+        return None
 
 
 @app.route('/api/login', methods=['POST'])
@@ -630,6 +648,12 @@ def request_analysis_batch():
         if 'url' in json_data and 'api_key' in json_data:
             url = json_data['url']
             api_key = json_data['api_key']
+
+            # Check if a file has been sent. If it's an XML, get the URLs from there and append to url list.
+            # Remember, for XML uploading, you need to send an empty array of 'url' as a data.
+            if 'file' in json_data:
+                xml_str = json_data['file']
+                url.extend(process_xml(xml_str))  # Process XML, get xml-urls and add them to url list.
 
             analyser = Analyser()
 

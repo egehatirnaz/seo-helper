@@ -119,8 +119,21 @@
          <div id="batch-analysis-div" class="analysis-choice-wrapper">
             <h3>Batch Analysis</h3>
             <div class="form-heading" style="margin-bottom: 10px;">
-               <p style="display:inline">Please provide multiple URLs seperated by new lines for your batch request.</p>
+               <p style="display:inline">Please provide multiple URLs seperated by new lines for your batch request.
+                  <br>You can also upload a sitemap.xml for analysis.</p>
             </div>
+
+            <div class="form-body">
+               <form id="xml-analysis" method="POST" style="width: 100%;">
+                  <label for="batch_xml" class="input-prompt">An XML file for URL analysis.</label><br>
+                  <div class="form-field">
+                     <input id="batch_xml" type="file" name="file_upload" accept="text/xml">
+                     <input type="submit" id="xml-submit" class="btn btn-secondary" value="Analyse The File!">
+                  </div>
+               </form>
+            </div>
+            <p class="form-message" id="response_xml"></p>
+
             <div class="form-body">
                <form id="batch-analysis" method="POST" style="width: 100%;">
                   <div class="form-field">
@@ -192,6 +205,69 @@
                 });
             }
             $('#response_single').text(message);
+        });
+
+        // XML REQUEST
+        $('#xml-analysis').on('submit', function (e) {
+            e.preventDefault();
+
+            let message = "";
+            let file = document.getElementById("batch_xml").files[0];
+            if (!file) {
+                message = "This field cannot be empty!"
+            } else {
+                let req = null;
+                message = "";
+                let reader = new FileReader();
+                reader.readAsText(file, "UTF-8");
+                reader.onload = function (evt) {
+                    xml_str = String(evt.target.result);
+                    let submitButton = $('#xml-submit');
+                    let oldText = submitButton.val();
+                    req = $.ajax({
+                        type: 'POST',
+                        headers: {
+                            'Auth-Key': '{{Auth_Key}}',
+                            'Content-Type': 'application/json'
+                        },
+                        url: "{{ url_for('request_analysis_batch') }}",
+                        contentType: 'application/json',
+                        data: JSON.stringify({
+                            url: [],
+                            file: xml_str,
+                            api_key: "{{api_key}}",
+                            mode: dup_check,
+                            ignore: ignored_errors
+                        }),
+                        beforeSend: function () {
+                            if (req != null) {
+                                req.abort();
+                            }
+                            submitButton.val("");
+                            submitButton.addClass("button_loading");
+                            submitButton.attr("disabled", true);
+                        },
+                        success: function (data) {
+                            message = data;
+                            $('#response_xml').text(message);
+                        },
+                        error: function (xhr, status, error) {
+                            console.log("shit's on fire yo.");
+                            console.log(xhr, status, error);
+                            $('#response_xml').text(message);
+                        },
+                        complete: function () {
+                            submitButton.val(oldText);
+                            submitButton.removeClass("button_loading");
+                            submitButton.attr("disabled", false);
+                        }
+                    });
+                };
+                reader.onerror = function (evt) {
+                    $('#response_xml').text("Error reading file!");
+                };
+            }
+            $('#response_xml').text(message);
         });
 
         // BATCH REQUEST
