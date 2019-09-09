@@ -116,24 +116,12 @@
             </div>
             <p class="form-message" id="response_single"></p>
          </div>
+
          <div id="batch-analysis-div" class="analysis-choice-wrapper">
             <h3>Batch Analysis</h3>
             <div class="form-heading" style="margin-bottom: 10px;">
-               <p style="display:inline">Please provide multiple URLs seperated by new lines for your batch request.
-                  <br>You can also upload a sitemap.xml for analysis.</p>
+               <p style="display:inline">Please provide multiple URLs seperated by new lines for your batch request.</p>
             </div>
-
-            <div class="form-body">
-               <form id="xml-analysis" method="POST" style="width: 100%;">
-                  <label for="batch_xml" class="input-prompt">An XML file for URL analysis.</label><br>
-                  <div class="form-field">
-                     <input id="batch_xml" type="file" name="file_upload" accept="text/xml">
-                     <input type="submit" id="xml-submit" class="btn btn-secondary" value="Analyse The File!">
-                  </div>
-               </form>
-            </div>
-            <p class="form-message" id="response_xml"></p>
-
             <div class="form-body">
                <form id="batch-analysis" method="POST" style="width: 100%;">
                   <div class="form-field">
@@ -144,6 +132,23 @@
                </form>
             </div>
             <p class="form-message" id="response_batch"></p>
+         </div>
+
+          <div id="xml-analysis-div" class="analysis-choice-wrapper">
+            <h3>Sitemap Analysis</h3>
+            <div class="form-heading" style="margin-bottom: 10px;">
+               <p style="display:inline">Please a sitemap.xml to request an analysis.</p>
+            </div>
+            <div class="form-body">
+               <form id="xml-analysis" method="POST" style="width: 100%;">
+                  <label for="batch_xml" class="input-prompt">An XML file for URL analysis.</label><br>
+                  <div class="form-field">
+                     <input id="batch_xml" type="file" name="file_upload" accept="text/xml">
+                     <input type="submit" id="xml-submit" class="btn btn-secondary" value="Analyse The File!">
+                  </div>
+               </form>
+            </div>
+            <p class="form-message" id="response_xml"></p>
          </div>
       </div>
    </div>
