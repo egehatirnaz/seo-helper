@@ -351,16 +351,31 @@ def action_seo_errors():
                     description = None if 'description' not in json_data else json_data['description']
                     attribute = None if 'attribute' not in json_data else json_data['attribute']
                     value = None if 'value' not in json_data else json_data['value']
+                    content = None if 'content' not in json_data else json_data['content']
+
+                    if attribute == "":
+                        attribute = None
+                    if value == "":
+                        value = None
+                    if content == "":
+                        content = None
+
+                    # Check for error duplication.
+                    checked_error_id = db_obj.exists('seo_errors', [('tag', tag), ('attribute', attribute),
+                                                                    ('value', value), ('content', content)])
+                    if checked_error_id:
+                        message = "There is already an existing SEO error associated with this tag!"
+                        return make_response({"message": message}, 200)
+
                     try:
                         db_obj.insert_data('seo_errors',
-                                           [(name, tag, description, attribute, value)],
-                                           COLUMNS=['name', 'tag', 'description', 'attribute', 'value'])
+                                           [(name, tag, description, attribute, value, content)],
+                                           COLUMNS=['name', 'tag', 'description', 'attribute', 'value', 'content'])
                         message = "A new error has been added successfully!"
                     except Exception as e:
                         print(e)
-                        return make_response(jsonify(
-                            {"message": "Action could not be performed. Query did not execute successfully."}), 500)
-                    return make_response(message, 200)
+                        message = "Action could not be performed. Query did not execute successfully."
+                    return make_response({"message": message}, 200)
                 else:
                     return make_response(jsonify(
                         {"message": "Invalid parameters."}), 400)
@@ -761,7 +776,8 @@ def logout():
         res.set_cookie('seohelper_user_cookie', '', 0)
         res.set_cookie('seohelper_username', '', 0)
         res.set_cookie('seohelper_usermail', '', 0)
-        res.set_cookie('seohelper_userapikey', '', max_age=60 * 60 * 24)
+        res.set_cookie('seohelper_userapikey', '', 0)
+        res.set_cookie('seohelper_adminstatus', '', 0)
         return res
     else:
         return redirect(url_for('login'))
@@ -799,6 +815,98 @@ def account_settings():
         return redirect(url_for('login'))
     else:
         return render_template("account/settings.html", username=user_name,
+                               usermail=user_mail, api_key=user_api_key, Auth_Key=env.AUTH_KEY)
+
+
+@app.route('/admin/login', methods=['POST'])
+def action_admin_login():
+    if 'Auth-Key' in request.headers:
+        auth_key = request.headers['Auth-Key']
+        if valid_auth(auth_key):  # Valid Auth Key, proceed as usual.
+            if request.method == 'POST':
+
+                # JSON control.
+                if not check_json(request):
+                    return make_response(jsonify(
+                        {"message": "Request body must be JSON."}), 400)
+                # Creating a user with given values.
+                json_data = request.get_json()
+                if 'email' in json_data and 'password' in json_data:
+                    password = json_data['password']
+                    email = json_data['email']
+
+                    # Checking if the user already exits.
+                    checked_user_id = db_obj.exists('user', [('email', email)])
+                    if checked_user_id:  # It exists.
+                        checked_user = db_obj.get_data("user",
+                                                       COLUMNS=["name_surname", "password", "email"],
+                                                       WHERE=[{'init': {'id': checked_user_id}}],
+                                                       OPERATOR="eq")[0]
+                        checked_pass = checked_user['password']
+                        passcheck = check_password(password, checked_pass)
+                        if passcheck:
+
+                            # If checked user id is admin...
+                            checked_admin = db_obj.exists('user_access_control', [('user_id', checked_user_id),
+                                                                                  ('is_admin', 1)])
+                            if checked_admin:
+                                api_key = db_obj.get_data("api_key",
+                                                          COLUMNS=["api_key"],
+                                                          WHERE=[{'init': {'user_id': checked_user_id}}],
+                                                          OPERATOR="eq")[0]['api_key']
+
+                                response = make_response(jsonify({"redir-url": "/admin/manage",
+                                                                  "message": "You are being redirected now."}), 200)
+
+                                response.set_cookie('seohelper_user_cookie', checked_pass + "&&" + str(checked_user_id),
+                                                    max_age=60 * 60 * 24)  # Age is 1 day.
+
+                                response.set_cookie('seohelper_username',
+                                                    str(checked_user['name_surname']), max_age=60 * 60 * 24)
+                                response.set_cookie('seohelper_usermail',
+                                                    str(checked_user['email']), max_age=60 * 60 * 24)
+                                response.set_cookie('seohelper_userapikey',
+                                                    str(api_key), max_age=60 * 60 * 24)
+                                response.set_cookie('seohelper_adminstatus', "1", max_age=60*60)
+                                return response
+                            else:
+                                return make_response(jsonify(
+                                    {"message": "Given user account is not an admin."}), 200)
+                        else:
+                            # invalid password
+                            return make_response(jsonify(
+                                {
+                                    "message": "Invalid password."}
+                            ), 200)
+                    else:
+                        return make_response(jsonify(
+                            {"message": "No admin with given e-mail address."}), 200)
+                else:
+                    print(json_data)
+                    return make_response(jsonify(
+                        {"message": "Invalid parameters."}), 400)
+
+            else:
+                return Response(status=405)
+    return Response(status=401)
+
+
+@app.route('/admin/login', methods=['GET'])
+def admin_login():
+    return render_template("admin/login.html", Auth_Key=env.AUTH_KEY)
+
+
+@app.route('/admin/manage', methods=['GET'])
+def admin_manage():
+    user_cookie = request.cookies.get('seohelper_user_cookie')
+    user_name = request.cookies.get('seohelper_username')
+    user_mail = request.cookies.get('seohelper_usermail')
+    user_api_key = request.cookies.get('seohelper_userapikey')
+    user_admin_status = request.cookies.get('seohelper_adminstatus')
+    if not user_cookie and not user_name and not user_api_key and user_admin_status is not "1":
+        return redirect(url_for('admin_login'))
+    else:
+        return render_template("admin/manage.html", username=user_name,
                                usermail=user_mail, api_key=user_api_key, Auth_Key=env.AUTH_KEY)
 
 

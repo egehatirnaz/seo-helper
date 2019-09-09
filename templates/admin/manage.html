@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+   <meta charset="UTF-8">
+   <title>SEO Helper - Admin Panel</title>
+   <meta name="description"
+         content="Admin page for your SEO Helper.">
+
+   <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+           integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+           crossorigin="anonymous"></script>
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
+           integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
+           crossorigin="anonymous"></script>
+   <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
+           integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
+           crossorigin="anonymous"></script>
+   <script src="http://code.jquery.com/jquery-1.9.1.js"></script>
+
+   <!-- Latest compiled and minified CSS -->
+   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+         integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+
+   <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
+   <style>
+      .input-prompt {
+         margin: 0 0 3px 0 !important;
+      }
+
+      .form-field {
+         margin: 10px;
+         margin-top: 25px;
+         width: 100%;
+      }
+
+      .error_input {
+         width: 20% !important;
+         line-height: 10px !important;
+         height: 30px !important;
+         font-size: small !important;
+         font-family: 'Consolas', 'Monaco', 'Bitstream Vera Sans Mono', monospace;
+      }
+
+      .error-tag-template {
+         margin: 0 5px;
+         font-weight: bold;
+         font-family: 'Consolas', 'Monaco', 'Bitstream Vera Sans Mono', monospace;
+      }
+
+      .radio-container {
+         box-sizing: border-box;
+         font-family: ‘Open Sans’, sans-serif;
+         font-size: 13px;
+         line-height: 30px;
+         margin: 0;
+         outline: 0;
+         overflow: hidden;
+         padding: 0;
+      }
+
+      .radio-container input {
+         width: auto !important;
+         box-sizing: border-box;
+         margin: 5px;
+         outline: 0;
+         padding: 0;
+         position: relative;
+         top: 3px;
+         vertical-align: top;
+      }
+
+   </style>
+</head>
+<body>
+<div class="header">
+   <a href="/" class="logo">SEO Helper Admin Panel</a>
+   <div class="header-right">
+      <a href="/logout">Logout</a>
+   </div>
+</div>
+<div class="page">
+   <div class="container">
+      <div class="content large">
+         <h1>Manage</h1>
+         <p>From here, you are able to make changes in the system by defining new SEO errors.</p>
+         <div class="analysis-choice-wrapper">
+            <h3>Add a new HTML tag for analysis:</h3>
+            <div class="form-heading" style="margin-bottom: 10px;">
+               <p style="display:inline">This tag can be a meta-tag or a plain HTML tag such as H2. </p>
+            </div>
+            <div class="form-body" style="display:block">
+               <form id="new-err" method="POST" style="max-width: 66%;">
+                  <div class="form-field">
+                     <p class="input-prompt">Error Name</p>
+                     <input id="error_name" type="text" name="name" placeholder="Missing OG Description">
+                  </div>
+                  <div class="form-field">
+                     <p class="input-prompt">Error Description</p>
+                     <textarea id="error_desc" name="description"
+                               placeholder="This page's Open Graph Description is missing!"></textarea>
+                  </div>
+                  <div class="form-field">
+                     <p class="input-prompt">If the tag does not have an attribute data, keep it empty.</p>
+                     <div class="error-area" style="display:flex;flex-wrap: nowrap">
+                        <p class="error-tag-template"> < </p>
+                        <input class="error_input" id="error_tag" type="text" name="tag" style="margin-right:20px;"
+                               placeholder="meta">
+                        <input class="error_input" id="error_attribute" type="text" name="attribute"
+                               placeholder="property">
+                        <p class="error-tag-template"> = "</p>
+                        <input class="error_input" id="error_attribute_value" type="text" placeholder="og:description"
+                               name="description">
+                        <p class="error-tag-template">" </p>
+                        <p class="error-tag-template"> > </p>
+                     </div>
+                  </div>
+                  <div class="form-field">
+                     <p class="input-prompt">Do you want this tag to be checked for its existence or for duplicates?</p>
+                     <div class="radio-container">
+                        <input id="rd1" type="radio" name="content" value="*" checked="checked">Duplicates<br>
+                        <input id="rd2" type="radio" name="content" value="">Missing<br>
+                     </div>
+                  </div>
+                  <input type="submit" id="err-submit" class="btn btn-secondary" value="Add New Tag!">
+               </form>
+            </div>
+            <p class="form-message" id="response_single"></p>
+
+            <!--
+            <h3>Account Information:</h3>
+            <p>
+               <b>User Name:</b> {{username}}<br>
+               <b>User E-mail:</b> {{usermail}}<br>
+               <b>API Key : {{api_key}}</b><br>
+            </p>
+            <br>
+            <div class="form-heading" style="margin-bottom: 30px;">
+               <p><b>Note:</b> Please do not share your API key with anyone. Just be cool, okay?</p>
+            </div> -->
+
+         </div>
+      </div>
+   </div>
+</div>
+</body>
+<script>
+    $(function () {
+        $('#new-err').on('submit', function (e) {
+            e.preventDefault();
+            let message = "";
+
+            let err_name = $('#error_name').val();
+            let err_desc = $('#error_desc').val();
+            let err_tag = $('#error_tag').val();
+            let err_attr = $('#error_attribute').val();
+            let err_attr_value = $('#error_attribute_value').val();
+            let err_content = $("input[name='content']:checked").val();
+
+            if (err_name === "" || err_desc === "" || err_tag === "") {
+                message = "Name, description and tag fields are mandatory!"
+            } else {
+                var req = null;
+                message = "";
+                let submitButton = $('#err-submit');
+                let oldText = submitButton.val();
+                req = $.ajax({
+                    type: 'POST',
+                    headers: {
+                        'Auth-Key': '{{Auth_Key}}',
+                        'Content-Type': 'application/json'
+                    },
+                    url: "{{ url_for('action_seo_errors') }}",
+                    contentType: 'application/json',
+                    data: JSON.stringify({
+                        name: err_name,
+                        tag: err_tag,
+                        attribute: err_attr,
+                        value: err_attr_value,
+                        content: err_content,
+                        description: err_desc
+                    }),
+                    beforeSend: function () {
+                        if (req != null) {
+                            req.abort();
+                        }
+                        submitButton.val("");
+                        submitButton.addClass("button_loading");
+                        submitButton.attr("disabled", true);
+                    },
+                    success: function (data) {
+                        message = data['message'];
+                        $('#response_single').text(message);
+                    },
+                    error: function (xhr, status, error) {
+                        console.log("shit's on fire yo.");
+                        console.log(xhr, status, error);
+                        $('#response_single').text(message);
+                    },
+                    complete: function () {
+                        submitButton.val(oldText);
+                        submitButton.removeClass("button_loading");
+                        submitButton.attr("disabled", false);
+                    }
+                });
+            }
+            $('#response_single').text(message);
+        });
+    });
+</script>
+</html>
