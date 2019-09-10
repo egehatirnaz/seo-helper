@@ -31,7 +31,8 @@
    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.1.3/css/bootstrap.css">
    <link rel="stylesheet" href="https://cdn.datatables.net/1.10.19/css/dataTables.bootstrap4.min.css">
 
-   <link href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+   <link href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet"
+         integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
 
    <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
    <style>
@@ -59,6 +60,11 @@
          font-family: 'Consolas', 'Monaco', 'Bitstream Vera Sans Mono', monospace;
       }
 
+      td.html-tag {
+         font-family: 'Consolas', 'Monaco', 'Bitstream Vera Sans Mono', monospace;
+         font-size: small;
+      }
+
       .radio-container {
          box-sizing: border-box;
          font-family: ‘Open Sans’, sans-serif;
@@ -81,10 +87,10 @@
          vertical-align: top;
       }
 
-      .remove-icon{
+      .remove-icon {
          color: rgba(255, 0, 0, 0.84) !important;
          font-size: large;
-         cursor:pointer !important;
+         cursor: pointer !important;
       }
    </style>
 </head>
@@ -99,7 +105,7 @@
    <div class="container">
       <div class="content large">
          <h1>Manage</h1>
-         <p>From here, you are able to make changes in the system by defining new SEO errors.</p>
+         <p>From here, you are able to make changes in the system by defining new SEO errors or deleting existing ones.</p>
          <div class="analysis-choice-wrapper">
             <h3>Add a new error for analysis:</h3>
             <div class="form-heading" style="margin-bottom: 10px;">
@@ -153,9 +159,10 @@
                      <th>ID</th>
                      <th>Error Name</th>
                      <th>Tag</th>
+                     <!--
                      <th>Attribute</th>
                      <th>Attr. Value</th>
-                     <th>Tag Content</th>
+                     <th>Tag Content</th>-->
                      <th>Error Description</th>
                   </tr>
                   </thead>
@@ -166,9 +173,10 @@
                      <td>-</td>
                      <td>-</td>
                      <td>-</td>
+                     <!--
                      <td>-</td>
                      <td>-</td>
-                     <td>-</td>
+                     <td>-</td>-->
                   </tr>
                   </tbody>
                </table>
@@ -245,12 +253,12 @@
         });
     });
 
-    function remove_error(id){
+    function remove_error(id) {
         console.log(id);
         let req = null;
         req = $.ajax({
             type: 'DELETE',
-            headers:{
+            headers: {
                 'Auth-Key': '{{Auth_Key}}',
                 'Content-Type': 'application/json'
             },
@@ -303,14 +311,29 @@
                     error_val = element['value'];
                     error_content = element['content'];
                     error_desc = element['description'];
+
+                    tag_str = "<" + error_tag;
+                    if (error_attr !== null && error_val !== null) {
+                        tag_str += " " + error_attr + "=" + error_val;
+
+                        if (error_content !== null) {
+                            tag_str += " content='" + error_content + "'";
+                        }
+                    }
+
+                    tag_str += ">";
+
                     error_list.push({
                         'action': '<a class="remove-icon" onclick="remove_error(' + id + ');"><i class="fa fa-minus-circle"></i></a>',
                         'id': id,
                         'error_name': error_name,
+                        'tag': escapeHtml(tag_str),
+                        /*
                         'error_tag': error_tag,
                         'error_attr': error_attr,
                         'error_val': error_val,
                         'error_content': error_content,
+                        */
                         'error_desc': error_desc
                     });
                 })
@@ -328,16 +351,31 @@
                         {"data": "action"},
                         {"data": "id"},
                         {"data": "error_name"},
+                        {"data": "tag"},
+                        /*
                         {"data": "error_tag"},
                         {"data": "error_attr"},
                         {"data": "error_val"},
                         {"data": "error_content"},
+                         */
                         {"data": "error_desc"},
+                    ],
+                    columnDefs: [
+                        {className: "html-tag", targets: 3}
                     ],
                     data: error_list
                 });
             }
         });
+    }
+
+    function escapeHtml(unsafe) {
+        return unsafe
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
     }
 
     $(document).ready(update_table());
