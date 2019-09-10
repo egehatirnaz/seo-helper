@@ -21,6 +21,18 @@
    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
          integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
 
+   <!-- Datatables Scripts -->
+   <script src="https://cdn.datatables.net/1.10.19/js/jquery.dataTables.min.js"></script>
+   <script src="https://cdn.datatables.net/1.10.19/js/dataTables.bootstrap4.min.js"></script>
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.8.4/moment.min.js"></script>
+   <script src="https://cdn.datatables.net/plug-ins/1.10.19/sorting/datetime-moment.js"></script>
+
+   <!-- Datatables -->
+   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.1.3/css/bootstrap.css">
+   <link rel="stylesheet" href="https://cdn.datatables.net/1.10.19/css/dataTables.bootstrap4.min.css">
+
+   <link href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+
    <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
    <style>
       .input-prompt {
@@ -69,6 +81,11 @@
          vertical-align: top;
       }
 
+      .remove-icon{
+         color: rgba(255, 0, 0, 0.84) !important;
+         font-size: large;
+         cursor:pointer !important;
+      }
    </style>
 </head>
 <body>
@@ -84,7 +101,7 @@
          <h1>Manage</h1>
          <p>From here, you are able to make changes in the system by defining new SEO errors.</p>
          <div class="analysis-choice-wrapper">
-            <h3>Add a new HTML tag for analysis:</h3>
+            <h3>Add a new error for analysis:</h3>
             <div class="form-heading" style="margin-bottom: 10px;">
                <p style="display:inline">This tag can be a meta-tag or a plain HTML tag such as H2. </p>
             </div>
@@ -125,18 +142,37 @@
                </form>
             </div>
             <p class="form-message" id="response_single"></p>
-
-            <!--
-            <h3>Account Information:</h3>
-            <p>
-               <b>User Name:</b> {{username}}<br>
-               <b>User E-mail:</b> {{usermail}}<br>
-               <b>API Key : {{api_key}}</b><br>
-            </p>
             <br>
-            <div class="form-heading" style="margin-bottom: 30px;">
-               <p><b>Note:</b> Please do not share your API key with anyone. Just be cool, okay?</p>
-            </div> -->
+
+            <h3>Delete an error:</h3>
+            <div id="error-list-div">
+               <table id="table_id" class="table table-striped table-bordered" style="width:100%">
+                  <thead>
+                  <tr>
+                     <th><i style="font-size:large;" class="fa fa-trash-o"></i></th>
+                     <th>ID</th>
+                     <th>Error Name</th>
+                     <th>Tag</th>
+                     <th>Attribute</th>
+                     <th>Attr. Value</th>
+                     <th>Tag Content</th>
+                     <th>Error Description</th>
+                  </tr>
+                  </thead>
+                  <tbody>
+                  <tr>
+                     <td>-</td>
+                     <td>-</td>
+                     <td>-</td>
+                     <td>-</td>
+                     <td>-</td>
+                     <td>-</td>
+                     <td>-</td>
+                     <td>-</td>
+                  </tr>
+                  </tbody>
+               </table>
+            </div>
 
          </div>
       </div>
@@ -188,8 +224,10 @@
                         submitButton.attr("disabled", true);
                     },
                     success: function (data) {
+                        $('#table_id').DataTable().destroy();
                         message = data['message'];
                         $('#response_single').text(message);
+                        update_table();
                     },
                     error: function (xhr, status, error) {
                         console.log("shit's on fire yo.");
@@ -206,5 +244,102 @@
             $('#response_single').text(message);
         });
     });
+
+    function remove_error(id){
+        console.log(id);
+        let req = null;
+        req = $.ajax({
+            type: 'DELETE',
+            headers:{
+                'Auth-Key': '{{Auth_Key}}',
+                'Content-Type': 'application/json'
+            },
+            url: "/api/seo-errors/" + id,
+            beforeSend: function () {
+                if (req != null) {
+                    req.abort();
+                }
+            },
+            success: function (data) {
+                alert("An error has been deleted.");
+                update_table();
+            },
+            error: function (xhr, status, error) {
+                console.log("shit's on fire yo.");
+                console.log(xhr, status, error);
+            }
+        })
+    }
+
+    function update_table() {
+        //$.fn.dataTable.moment('DD.MM.YYYY HH:mm');
+        let error_list = [];
+        let req = null;
+        let date = new Date();
+        req = $.ajax({
+            cache: false,
+            type: 'GET',
+            headers: {
+                'Auth-Key': '{{Auth_Key}}',
+                'Content-Type': 'application/json',
+                "cache-control": "no-cache"
+            },
+            url: "{{ url_for('action_seo_errors') }}",
+            contentType: 'application/json',
+            data: JSON.stringify({
+                time: date.getTime()
+            }),
+            beforeSend: function () {
+                if (req != null) {
+                    req.abort();
+                }
+            },
+            success: function (data) {
+                data.forEach(function (element) {
+                    id = element['id'];
+                    error_name = element['name'];
+                    error_tag = element['tag'];
+                    error_attr = element['attribute'];
+                    error_val = element['value'];
+                    error_content = element['content'];
+                    error_desc = element['description'];
+                    error_list.push({
+                        'action': '<a class="remove-icon" onclick="remove_error(' + id + ');"><i class="fa fa-minus-circle"></i></a>',
+                        'id': id,
+                        'error_name': error_name,
+                        'error_tag': error_tag,
+                        'error_attr': error_attr,
+                        'error_val': error_val,
+                        'error_content': error_content,
+                        'error_desc': error_desc
+                    });
+                })
+            },
+            error: function (xhr, status, error) {
+                console.log("shit's on fire yo.");
+                console.log(xhr, status, error);
+            },
+            complete: function () {
+                $('#table_id').DataTable({
+                    destroy: true,
+                    autoWidth: true,
+                    "order": [[1, "asc"]],
+                    columns: [
+                        {"data": "action"},
+                        {"data": "id"},
+                        {"data": "error_name"},
+                        {"data": "error_tag"},
+                        {"data": "error_attr"},
+                        {"data": "error_val"},
+                        {"data": "error_content"},
+                        {"data": "error_desc"},
+                    ],
+                    data: error_list
+                });
+            }
+        });
+    }
+
+    $(document).ready(update_table());
 </script>
 </html>

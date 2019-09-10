@@ -304,7 +304,7 @@ def action_get_user_history():
     return Response(status=401)
 
 
-@app.route('/api/seo-errors/<int:error_id>', methods=['GET'])
+@app.route('/api/seo-errors/<int:error_id>', methods=['GET', 'DELETE'])
 def action_get_seo_error(error_id):
     if 'Auth-Key' in request.headers:
         auth_key = request.headers['Auth-Key']
@@ -323,6 +323,15 @@ def action_get_seo_error(error_id):
                         return Response("No record found for this error ID.", status=404)
                 else:
                     return Response("No record found for this error ID.", status=404)
+            elif request.method == 'DELETE':
+                if error_id and error_id > 0:
+                    try:
+                        query = db_obj.execute("DELETE FROM seo_errors WHERE id = '{0}' LIMIT 1".format(error_id))
+                    except Exception as e:
+                        print(e)
+                        return make_response(jsonify(
+                            {"message": "Action could not be performed. Query did not execute successfully."}), 500)
+                    return make_response(jsonify({"message": "Success!."}), 200)
             else:
                 return Response(status=405)
     return Response(status=401)
