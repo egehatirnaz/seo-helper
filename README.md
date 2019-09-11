@@ -16,6 +16,9 @@ If certain errors are encountered in your URL, you will be notified via e-mail.
 After you sign up to SEO Helper with your e-mail address, an API key will be connected to that e-mail address.
 With this key, you will be able to use SEO Helper to analyse any given URL.
 
+## API Documentation
+[Click here](https://documenter.getpostman.com/view/5446795/SVmqzfkv?version=latest) to check out the API documentation. This API documentation is based on the Postman Collection for SEO Helper. SEO Helper web-service uses these API endpoints for the requests made via AJAX.
+
 ## Getting Started
 The necessary Python packages are listed under requirements.txt. You can run ```pip install -r requirements.txt``` to install the required packages.
 
