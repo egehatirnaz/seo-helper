@@ -418,7 +418,7 @@ class Analyser:
     def request_analysis(self, url, api_key, mode, **kwargs):
         auth = self.auth(api_key)
         if auth is False:
-            return None, "Invalid API key."
+            return {'error_list': None, 'message': "Invalid API key."}
 
         # Proceed as usual.
         user_data = auth
@@ -463,7 +463,7 @@ class Analyser:
                     else:
                         urls_error_list.append(self.analyse(url, user_data)[0])
             else:
-                return None, "Provided URL is not a string."
+                return {'error_list': None, 'message': "Provided URL is not a string."}
         else:
             # for API!
             if 'dup_mode' in kwargs:
@@ -505,9 +505,9 @@ class Analyser:
             result = notifier.notify(user_email, user_name, urls_error_list)
         except Exception as e:
             print(e)
-            return None, "Something went wrong!"
+            return {'error_list': None, 'message': "Something went wrong!"}
         # End of the road.
-        return result, "Success!"
+        return {'message': "Success!", 'error_list': str(urls_error_list), 'notifier_result': str(result)}
 
     def main(self):
         mode = 'subdomain'

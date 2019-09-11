@@ -193,7 +193,7 @@
                         submitButton.attr("disabled", true);
                     },
                     success: function (data) {
-                        message = data;
+                        message = data["message"];
                         $('#response_single').text(message);
                     },
                     error: function (xhr, status, error) {

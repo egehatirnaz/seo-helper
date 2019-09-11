@@ -649,8 +649,7 @@ def request_analysis():
                         {"message": "Invalid parameters." + json_data['mode']}), 400)
             else:
                 result = analyser.request_analysis(url, api_key, "single")
-            message = result[1]
-            return make_response(message, 200)
+            return make_response(result, 200)
         else:
             return make_response(jsonify(
                 {"message": "Invalid parameters."}), 400)
@@ -714,8 +713,7 @@ def request_analysis_batch():
                         {"message": "Invalid parameters."}), 400)
             else:
                 result = analyser.request_analysis(url, api_key, "batch")
-            message = result[1]
-            return make_response(message, 200)
+            return make_response(result, 200)
         else:
             return make_response(jsonify(
                 {"message": "Invalid parameters."}), 400)
@@ -758,7 +756,7 @@ def api_test():
         auth_key = request.headers['Auth-Key']
         if valid_auth(auth_key):  # Valid Auth Key, proceed as usual.
             return "API is working!", 200
-    return Response(status=401)
+    return Response("Unauthorized!", status=401)
 
 
 @app.route('/sign-up', methods=['GET'])
