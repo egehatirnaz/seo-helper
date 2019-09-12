@@ -464,8 +464,8 @@ class Analyser:
                         urls_error_list.append(self.analyse(url, user_data)[0])
             else:
                 return {'error_list': None, 'message': "Provided URL is not a string."}
-        else:
-            # for API!
+        else:  # BATCH MODE.
+            # for API! TODO: Use multiprocessing pool for these for loops.
             if 'dup_mode' in kwargs:
                 if kwargs['dup_mode'] == 'domain':
                     for link in url:

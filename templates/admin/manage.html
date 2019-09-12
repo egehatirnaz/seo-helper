@@ -149,7 +149,6 @@
             </div>
             <p class="form-message" id="response_single"></p>
             <br>
-
             <h3>Delete an error:</h3>
             <div id="error-list-div">
                <table id="table_id" class="table table-striped table-bordered" style="width:100%">
@@ -159,10 +158,6 @@
                      <th>ID</th>
                      <th>Error Name</th>
                      <th>Tag</th>
-                     <!--
-                     <th>Attribute</th>
-                     <th>Attr. Value</th>
-                     <th>Tag Content</th>-->
                      <th>Error Description</th>
                   </tr>
                   </thead>
@@ -173,15 +168,10 @@
                      <td>-</td>
                      <td>-</td>
                      <td>-</td>
-                     <!--
-                     <td>-</td>
-                     <td>-</td>
-                     <td>-</td>-->
                   </tr>
                   </tbody>
                </table>
             </div>
-
          </div>
       </div>
    </div>
@@ -269,7 +259,7 @@
                 }
             },
             success: function (data) {
-                alert("An error has been deleted.");
+                alert("An error (#" + id + ") has been deleted.");
                 update_table();
             },
             error: function (xhr, status, error) {
@@ -314,10 +304,10 @@
 
                     tag_str = "<" + error_tag;
                     if (error_attr !== null && error_val !== null) {
-                        tag_str += " " + error_attr + "=" + error_val;
+                        tag_str += " " + error_attr + "=\"" + error_val + "\"";
 
                         if (error_content !== null) {
-                            tag_str += " content='" + error_content + "'";
+                            tag_str += " content=\"" + error_content + "\"";
                         }
                     }
 
