@@ -253,7 +253,7 @@
                             submitButton.attr("disabled", true);
                         },
                         success: function (data) {
-                            message = data;
+                            message = data["message"];
                             $('#response_xml').text(message);
                         },
                         error: function (xhr, status, error) {
@@ -312,7 +312,7 @@
                         submitButton.attr("disabled", true);
                     },
                     success: function (data) {
-                        message = data;
+                        message = data["message"];
                         $('#response_batch').text(message);
                     },
                     error: function (xhr, status, error) {
