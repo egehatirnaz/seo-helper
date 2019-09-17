@@ -41,32 +41,41 @@ class Analyser:
     @staticmethod
     def broken_link_helper(href):
         # Try out a HEAD request.
+        start = time.time()
         try:
             r = requests.head(href, timeout=5)
             if not r.ok:
                 # HEAD request failed, perhaps it is blocked? Try GET.
-                r = requests.get(href, timeout=10)
+                r = requests.get(href, timeout=10, verify=False)
                 if not r.ok:
+                    print(href, " - ", time.time() - start)
                     return False
         except requests.exceptions.Timeout:
             try:
-                r = requests.get(href, timeout=10)
+                r = requests.get(href, timeout=10, verify=False)
                 if not r.ok:
+                    print(href, " - ", time.time() - start)
                     return False
             except requests.exceptions.Timeout:
+                print(href, " - ", time.time() - start)
                 return False
             except requests.exceptions.ConnectionError:
+                print(href, " - ", time.time() - start)
                 return False
         except requests.exceptions.ConnectionError:
             try:
-                r = requests.get(href, timeout=10)
+                r = requests.get(href, timeout=10, verify=False)
                 if not r.ok:
+                    print(href, " - ", time.time() - start)
                     return False
             except requests.exceptions.Timeout:
+                print(href, " - ", time.time() - start)
                 return False
             except requests.exceptions.ConnectionError:
+                print(href, " - ", time.time() - start)
                 return False
         # Welcome to the internet where no URL behaves the same.
+        print(href, " - ", time.time() - start)
         return True
 
     @staticmethod
@@ -82,6 +91,7 @@ class Analyser:
 
     def find_broken_links(self, crawl_data, url):
         href_list = [tag['href'] for tag in crawl_data.find_all('a', href=True)]
+        print("URL COUNT: ", len(href_list))
 
         # Get absolute links from all ahref tags.
         absolute_links = self.url_absolute(url, href_list)
@@ -511,7 +521,7 @@ class Analyser:
 
     def main(self):
         mode = 'subdomain'
-        print(self.request_analysis(["https://developers.jotform.com"],
+        print(self.request_analysis(["https://developers.jotform.com", "https://www.mgm.gov.tr"],
                                     "7882e9e22bfa7dc96a6e8333a66091c51d5fe012", "batch", dup_mode=mode))
 
 
